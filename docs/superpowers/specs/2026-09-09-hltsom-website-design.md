@@ -43,7 +43,7 @@ application: there is no booking, no cart, no account, no form.
 | D7 | Cloudflare Web Analytics | Cookieless and free. No consent banner, no recurring bill that can lapse |
 | D8 | Self-hosted fonts, subset to Latin + æøå | Google Fonts CDN sends visitor IPs to Google (a GDPR problem in the EU) and costs an extra connection |
 | D9 | Wordmark is lowercase *søm* in Cormorant Infant Italic — **provisional** | Chosen from a live comparison; see [§6.1](#61-typography) for what must be re-checked |
-| D10 | All imagery is placeholder at launch of development | Carousel uses four CC0 photographs; block images remain SVG placeholders. See §8 |
+| D10 | All imagery is CC0 placeholder photography, pending her own | Carousel and both block images are real photographs; only `logo.svg` is still drawn. See §8 |
 | D11 | Menu is a full-screen takeover on mobile, a dropdown panel on desktop | A takeover exists because a thumb needs large targets on a small screen. On desktop the same four links fit under the burger without hiding the page |
 | D12 | Colour palette is derived from the carousel photography | The photos are the loudest colour on the page; deriving the palette from them makes the site read as one material rather than as photos dropped into a template |
 
@@ -108,9 +108,15 @@ workshop is with no interaction and no third-party request; only panning, zoomin
 directions require the click, and that click is the consent action.
 
 The element is an `<a>`, not a `<button>`, so without JavaScript it opens Google Maps in a new
-tab. **The OpenStreetMap attribution beneath the map is required by the ODbL licence and must
-stay visible.** The preview centres on Sandvika generally and must be regenerated once the real
-street address is known.
+tab.
+
+**The OpenStreetMap credit beneath the preview is required by the ODbL licence and must stay
+visible while the preview is shown.** It is deliberately removed when Google's map replaces the
+preview: the credit describes tiles that are no longer on screen, and Google attributes itself
+inside its own iframe. Both states are asserted by tests.
+
+The preview centres on Sandvika generally and must be regenerated once the real street address
+is known.
 
 ### 3.4 Block 4 — Om meg
 
@@ -162,6 +168,13 @@ supporting detail and comes last.
 - Overlay closes on: link click, Escape, outside click. Focus is trapped while open, and
   returns to the burger on close. `aria-expanded` reflects state.
 - In-page links smooth-scroll, unless reduced motion is requested.
+
+**The burger's bars are centred under the "MENY" label, not flush right with it.** The label
+also carries `margin-right: -.18em`. That negative margin is not a typo and is not dead code:
+letter-spacing is applied after the final letter as well, so the word's ink sits half a space
+left of its own box and reads visibly off-centre above the bars without the compensation. Bars
+are 30px wide against a ~36px label. A test measures the two centres against each other rather
+than describing the intent.
 
 ---
 
@@ -300,7 +313,7 @@ legitimate paid option if the open-licence face disappoints.
 | Styling | Plain CSS — custom properties, Grid, Flexbox. No Tailwind, no Sass, no build |
 | Scripting | Vanilla JS, ~60 lines. Three jobs only: burger toggle, carousel, click-to-load map |
 | Parallax | CSS scroll-driven animations — zero JS |
-| Images | AVIF + WebP + JPEG fallback via `<picture>` and `srcset` |
+| Images | **Currently WebP only**, one size, no `srcset`. The first splash slide is preloaded; the rest carry `data-src` and are filled in after load. The full `<picture>` treatment (AVIF + WebP + JPEG fallback) is the target for the final photography, not what ships today — see §8 |
 | Image tooling | Squoosh (browser) or ImageMagick locally — deliberately **outside** the repo |
 | Fonts | Self-hosted `.woff2` |
 | Analytics | Cloudflare Web Analytics, one script tag with SRI |
@@ -474,7 +487,8 @@ above all the privacy guarantee, which is a legal obligation rather than a prefe
 
 - **No cookie and no Google request before the map preview is clicked**; the interactive
   iframe appears only after, and the visitor is told what the click will do
-- The OpenStreetMap attribution is present and visible (ODbL requirement)
+- The OpenStreetMap credit is visible under the preview (ODbL requirement) and disappears once
+  Google's map replaces it
 - Burger overlay: opens, traps focus, closes on Escape, restores focus, `aria-expanded` correct
 - Carousel advances, and holds still under `prefers-reduced-motion`
 - Parallax and smooth scroll disabled under `prefers-reduced-motion`

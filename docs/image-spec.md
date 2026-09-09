@@ -92,6 +92,23 @@ different photo. Changing the typeface is a spec edit (§6.1).
 | Block 4 (Om meg) | `om` | **1:1 square** | 1200×1200 | The tailor herself. A face builds more trust than any copy. Subject centred |
 | Logo | `logo` | 1:1 | 400×400, or SVG | Simple enough to read at 100×100 |
 
+### The logo placeholder
+
+`logo.svg` is the only remaining placeholder. It reads **HLT** over **SØM** on two lines in
+Georgia italic, inside a hairline square.
+
+Two constraints that look like defects and are not:
+
+- **The fill is an explicit `#ffffff`, never `currentColor`.** The file is loaded through an
+  `<img>`, which cannot inherit colour from the page, so `currentColor` resolves to black and
+  then vanishes completely under the nav's `mix-blend-mode: difference`. This has already
+  happened once.
+- **It uses Georgia, not Cormorant Infant.** An SVG loaded through an `<img>` cannot reach the
+  site's self-hosted webfonts. A real logo should be drawn as paths, which removes the problem
+  entirely.
+
+A test asserts the two lines still read `HLT` and `SØM`, so the Ø cannot be silently lost.
+
 ### Adding a carousel slide
 
 Slides are `<img>` elements inside `.splash__slides`, not CSS backgrounds. That is what allows

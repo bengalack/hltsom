@@ -22,8 +22,10 @@ spec records why.
    consent action — which is why the site needs no cookie banner. Do NOT load the Google iframe
    on page load or on scroll; that would be a legal problem, not a performance one. See
    `docs/decisions/0002-static-map-preview.md` (which supersedes 0001).
-   **The OpenStreetMap attribution under the map is required by the ODbL licence — do not
-   remove it.**
+   **The OpenStreetMap credit under the preview is required by the ODbL licence — do not
+   remove it from the preview.** It IS removed once the visitor clicks and Google's map takes
+   over, because the credit describes tiles that are no longer on screen. Both halves are
+   tested; neither is an accident.
 5. **Relative asset paths only** (`assets/…`, never `/assets/…`). The site moves from a
    GitHub Pages subpath to an apex domain; root-absolute paths break silently on one of them.
 6. **No Google Fonts CDN.** Fonts are self-hosted in `assets/fonts/`. Loading them from
@@ -44,6 +46,18 @@ spec records why.
   `src` will fail a test.
 - **The colour tokens are derived from the carousel photographs**, not picked independently. If
   the photography changes substantially, re-derive them — `docs/image-spec.md` explains how.
+- **The parallax keyframe translates by a POSITIVE amount.** It looks inverted for an "exit"
+  animation and is not: a block has to lag the page to appear slower. A negative value drags it
+  along with the scroll and it leaves *faster* than normal — measured at -1.17x, which reads as
+  "the parallax is broken". Likewise `animation-range: exit`, never `exit-crossing 0% exit
+  100%`. Both traps are recorded in spec §5, and a test measures effective scroll speed.
+- **`.site-nav__burger-label` has `margin-right: -.18em`.** Not dead code: letter-spacing is
+  applied after the last letter too, so "MENY" would sit visibly off-centre above the bars
+  without it.
+- **`logo.svg` uses an explicit `#ffffff` and Georgia**, not `currentColor` and not the site
+  webfont. An SVG loaded through an `<img>` can do neither. See `docs/image-spec.md`.
+- **Block images are square sources in a circular crop.** A 4:5 photo will have its corners
+  thrown away. Supply squares with the subject centred.
 
 ## How to change a decision
 
