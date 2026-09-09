@@ -1,4 +1,21 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+test('the logo image actually loads and is not drawn in currentColor', async ({ page }) => {
+  // The logo is loaded through an <img>, which cannot inherit color from the
+  // page. currentColor resolves to black there and then vanishes entirely under
+  // the nav's mix-blend-mode: difference — an invisible logo that no layout
+  // assertion would catch.
+  const svg = readFileSync(new URL('../../assets/img/logo.svg', import.meta.url), 'utf8');
+  const withoutComments = svg.replace(/<!--[\s\S]*?-->/g, '');
+  expect(withoutComments).not.toMatch(/(?:fill|stroke|color)\s*=\s*"currentColor"/);
+
+  await page.goto('/');
+  const painted = await page.locator('.site-nav__logo img').evaluate(
+    (img) => img.complete && img.naturalWidth > 0
+  );
+  expect(painted).toBe(true);
+});
 
 test('logo and burger are fixed and always visible', async ({ page }) => {
   await page.goto('/');

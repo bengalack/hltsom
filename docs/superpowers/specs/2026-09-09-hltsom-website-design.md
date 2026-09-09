@@ -1,6 +1,6 @@
 # HLT Søm — One-Page Website Design
 
-**Status:** Approved, not yet implemented
+**Status:** Implemented — placeholder content and imagery pending
 **Last updated:** 2026-09-09
 **Owner:** bengalack
 
