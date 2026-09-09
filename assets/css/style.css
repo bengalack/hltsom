@@ -209,3 +209,41 @@ a { color: inherit; }
 body.nav-open { overflow: hidden; }
 
 html { scroll-behavior: smooth; }
+
+/* ---------- shared two-column layout for blocks 2-4 ---------- */
+.split {
+  display: grid;
+  gap: var(--space-12);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Mobile: image first, text second — in blocks 2 and 4, deliberately.
+   Alternating on a phone reads as inconsistency, not rhythm.
+   Block 3 overrides this; see the contact block below and spec 3.6. */
+.split__media { order: 1; }
+.split__body  { order: 2; max-width: var(--measure); }
+
+@media (min-width: 800px) {
+  .split { grid-template-columns: 1fr 1fr; align-items: center; gap: var(--space-16); }
+  .split__media { order: 0; }
+  .split__body  { order: 0; }
+}
+
+.split__body h2 {
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 300;
+  letter-spacing: .04em;
+  margin-bottom: var(--space-6);
+}
+
+.service-list {
+  list-style: none;
+  margin: var(--space-8) 0 0;
+  padding: 0;
+}
+.service-list li {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid rgba(20, 17, 15, .12);
+}
+.block--dark .service-list li { border-bottom-color: rgba(253, 252, 250, .18); }
