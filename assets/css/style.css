@@ -199,16 +199,20 @@ a { color: inherit; }
   color: inherit;
   display: grid;
   gap: var(--space-2);
-  justify-items: end;
+  justify-items: center;   /* bars centred under the label, not both flush right */
 }
 .site-nav__burger-label {
   font-size: 10px;
   font-weight: 300;
   letter-spacing: .18em;
   text-transform: uppercase;
+  /* Letter-spacing is added after the last letter too, so the word's ink sits
+     half a space left of its box. Pull that back or "MENY" reads slightly
+     off-centre above the bars. */
+  margin-right: -.18em;
 }
-.site-nav__bars { display: grid; gap: 5px; }
-.site-nav__bars i { display: block; width: 26px; height: 1px; background: currentColor; }
+.site-nav__bars { display: grid; gap: 6px; }
+.site-nav__bars i { display: block; width: 30px; height: 1px; background: currentColor; }
 
 /* ---------- overlay ---------- */
 .nav-overlay {

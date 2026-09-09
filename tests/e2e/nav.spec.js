@@ -24,6 +24,27 @@ test('logo and burger are fixed and always visible', async ({ page }) => {
   await expect(page.locator('.site-nav__burger')).toBeVisible();
 });
 
+test('the burger bars are centred under the MENY label', async ({ page }) => {
+  // Optically this needs the label's trailing letter-spacing compensated,
+  // otherwise "MENY" sits a couple of pixels left of true centre.
+  await page.goto('/');
+  const label = await page.locator('.site-nav__burger-label').boundingBox();
+  const bars = await page.locator('.site-nav__bars').boundingBox();
+
+  const labelCentre = label.x + label.width / 2;
+  const barsCentre = bars.x + bars.width / 2;
+  expect(
+    Math.abs(labelCentre - barsCentre),
+    `label centre ${labelCentre.toFixed(1)} vs bars centre ${barsCentre.toFixed(1)}`
+  ).toBeLessThanOrEqual(1.5);
+});
+
+test('the burger bars are wide enough to read as a menu icon', async ({ page }) => {
+  await page.goto('/');
+  const bars = await page.locator('.site-nav__bars').boundingBox();
+  expect(bars.width).toBeGreaterThanOrEqual(28);
+});
+
 test('burger opens an overlay with four block links', async ({ page }) => {
   await page.goto('/');
   const burger = page.locator('.site-nav__burger');
