@@ -24,9 +24,21 @@ different photo. Changing the typeface is a spec edit (§6.1).
 | Block 4 (Om meg) | `om` | 4:5 portrait | 1200×1500 | The tailor herself. A face builds more trust than any copy |
 | Logo | `logo` | 1:1 | 400×400, or SVG | Simple enough to read at 100×100 |
 
-Add more carousel slides by following the `splash-N` numbering and adding one
-`.splash__slide` div in `index.html`. The carousel adapts to any number automatically; with a
-single slide it runs no timer at all.
+### Adding a carousel slide
+
+Two edits, both required:
+
+1. `index.html` — add `<div class="splash__slide splash__slide--3"></div>` inside
+   `.splash__slides`.
+2. `assets/css/style.css` — add `.splash__slide--3 { background-image: url('../img/splash-3.svg'); }`
+
+**The background must go in the stylesheet, never in a `style="…"` attribute.** The page's CSP
+has no `'unsafe-inline'`, so an inline background-image is silently blocked and the slide
+renders black — with no error visible to a casual look. A test guards this
+(`splash.spec.js`), so you will find out, but it is easier not to hit it.
+
+The carousel itself adapts to any number of slides automatically; with a single slide it runs
+no timer at all.
 
 ## Swapping a placeholder for a real photo
 

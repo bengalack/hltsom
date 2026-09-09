@@ -22,6 +22,33 @@ test('splash has at least one slide and the first is active', async ({ page }) =
   await expect(slides.first()).toHaveClass(/is-active/);
 });
 
+test('slide backgrounds actually render, and the CSP blocks nothing', async ({ page }) => {
+  // Regression guard. The slides once carried inline style="background-image:..."
+  // attributes, which the page's own CSP silently blocked: the splash rendered
+  // as a black rectangle while every other test still passed.
+  const violations = [];
+  page.on('console', (m) => {
+    if (m.text().includes('Content Security Policy')) violations.push(m.text());
+  });
+
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+
+  const backgrounds = await page.locator('.splash__slide').evaluateAll(
+    (els) => els.map((el) => getComputedStyle(el).backgroundImage)
+  );
+  expect(backgrounds.length).toBeGreaterThan(0);
+  for (const bg of backgrounds) expect(bg).toMatch(/url\(/);
+
+  expect(violations).toEqual([]);
+});
+
+test('index.html contains no inline style attributes', () => {
+  // The CSP has no 'unsafe-inline', so any style attribute is dead on arrival.
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  expect(html).not.toMatch(/\sstyle="/);
+});
+
 test('splash height uses svh, not vh', () => {
   // iOS Safari's collapsing address bar makes 100vh wrong on exactly the
   // devices most visitors use.

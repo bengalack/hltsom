@@ -99,6 +99,13 @@ a { color: inherit; }
 }
 .splash__slide.is-active { opacity: 1; }
 
+/* One rule per slide. These live here rather than in a style attribute because
+   the page's CSP forbids inline styles — an inline background-image is silently
+   blocked and the splash renders black. Add a slide by adding a div in
+   index.html AND a rule here. See docs/image-spec.md. */
+.splash__slide--1 { background-image: url('../img/splash-1.svg'); }
+.splash__slide--2 { background-image: url('../img/splash-2.svg'); }
+
 .splash__scrim {
   position: absolute; inset: 0;
   background: linear-gradient(var(--scrim-top), var(--scrim-bottom));
