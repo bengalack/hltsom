@@ -183,7 +183,7 @@ than describing the intent.
 | Effect | Behaviour |
 |---|---|
 | Carousel | Crossfade 1.2s, hold 5s. Pauses while the tab is hidden. With a single image, no timer runs at all |
-| Parallax | Outgoing block translates at roughly **0.5×** scroll speed; incoming block at **1×**. Applies to **all four blocks**, the splash included, at **every viewport width** |
+| Parallax | Outgoing block translates at roughly **0.5×** scroll speed; incoming block at **1×**. Applies to **all four blocks**, the splash included, on **pointing devices only** — [ADR 0003](../../decisions/0003-no-parallax-on-touch.md). The footer never parallaxes |
 | Smooth scroll | On anchor navigation only |
 
 Parallax is implemented with **CSS scroll-driven animations** (`animation-timeline: view()`),
@@ -209,10 +209,23 @@ block while the exit range is not. Measured: splash −0.60, tjenester −0.48, 
 "clearly slower than the page", so the tests bound the failures that matter — no movement at
 all, or movement at normal speed — rather than policing a decimal.
 
-**Scope:** all four blocks including the splash, at all widths. Both were originally narrower
-(blocks 2–4 only, desktop only); the splash omission meant the very first transition a visitor
-sees had no effect at all. Enabling it on phones costs nothing measurable — the animation runs
-on the compositor, and mobile Lighthouse stayed at 96 with 0ms total blocking time. `tests/e2e/motion.spec.js`
+**Scope:** all four blocks including the splash, on pointing devices only
+(`@media (hover: hover) and (pointer: fine)`). The splash was originally excluded, which left
+the very first transition a visitor sees with no effect at all.
+
+**Touch devices get no parallax** — [ADR 0003](../../decisions/0003-no-parallax-on-touch.md).
+Mobile browsers resize the viewport as their toolbar hides during a drag, which remaps the
+`view()` timeline and makes mid-animation blocks jump: a 900→915px height change displaced a
+block by 58px at an unchanged scroll position. It was briefly enabled everywhere on the
+argument that a mobile-first brief should not hide the effect from phones; that was reasoned
+rather than tested, and a real device showed it shivering. Do not re-enable it globally — a
+test fails if you do.
+
+**The footer is excluded and must stay excluded.** It is far shorter than the viewport, so
+there is no exit phase to animate. It carries `position: relative; z-index: 1` so the lagging
+last block passes *under* it rather than over it — without that, block 4 slid across the footer
+by up to 57px. The footer must never move while scrolling; a test asserts it holds a single
+document position. `tests/e2e/motion.spec.js`
 measures effective speed rather than asserting the CSS merely exists — an earlier test compared
 computed-transform *strings*, which passed happily against a completely broken implementation.
 That test must also disable `scroll-behavior: smooth` first, or every sample is taken while the

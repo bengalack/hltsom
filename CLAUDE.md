@@ -46,6 +46,14 @@ spec records why.
   `src` will fail a test.
 - **The colour tokens are derived from the carousel photographs**, not picked independently. If
   the photography changes substantially, re-derive them — `docs/image-spec.md` explains how.
+- **Parallax is deliberately OFF on touch devices** (`@media (hover: hover) and (pointer: fine)`).
+  Mobile browsers resize the viewport as their toolbar hides mid-drag, which remaps the `view()`
+  timeline and makes mid-animation blocks visibly jump — 58px, measured. Re-enabling it globally
+  looks like an improvement and ships a shivering page; a test fails if you try. See
+  `docs/decisions/0003-no-parallax-on-touch.md`.
+- **The footer never parallaxes, and carries `position: relative; z-index: 1`.** It is shorter
+  than the viewport so there is no exit phase to animate, and the z-index is what stops the
+  lagging last block sliding over it (57px on a phone). It must stay static while scrolling.
 - **The parallax keyframe translates by a POSITIVE amount.** It looks inverted for an "exit"
   animation and is not: a block has to lag the page to appear slower. A negative value drags it
   along with the scroll and it leaves *faster* than normal — measured at -1.17x, which reads as

@@ -406,6 +406,13 @@ html { scroll-behavior: smooth; }
 /* ---------- footer ----------
    Black because block 4 is white: adjacent blocks always contrast. */
 .site-footer {
+  /* The last block lags DOWNWARD as it exits, which slides it over the footer —
+     measured at 14px on desktop and 57px on a phone. The footer is the element
+     arriving after block 4, so like every incoming block it belongs on top.
+     A transformed element creates a stacking context and would otherwise
+     outrank a static footer, hence the explicit position/z-index. */
+  position: relative;
+  z-index: 1;
   background: var(--ink);
   color: var(--paper);
   text-align: center;
@@ -434,21 +441,31 @@ html { scroll-behavior: smooth; }
     to   { transform: translateY(calc(80% * var(--parallax-factor))); }
   }
 
-  /* Every block, block 1 included, at every width. The splash was originally
-     left out, so the hero left the screen at normal speed while everything
-     below it lagged — and that is the first transition a visitor ever sees.
-     The effect was also desktop-only, which sits badly with a mobile-first
-     brief where the parallax is a headline feature. Scroll-driven animations
-     run on the compositor, so this costs nothing measurable on a phone. */
-  #splash, #tjenester, #kontakt, #om {
-    animation: parallax-exit linear both;
-    animation-timeline: view();
-    /* "exit" is the phase where the block leaves the top of the viewport.
-       Do not write "exit-crossing 0% exit 100%": mixing two named ranges
-       produced a span the scroll barely entered, so the block sat pinned at
-       the from-keyframe and nothing visibly moved. */
-    animation-range: exit;
-    will-change: transform;
+  /* Every block, block 1 included — but only where the viewport stays put while
+     you scroll.
+
+     On a touch device, dragging slowly shows and hides the browser toolbar.
+     That changes innerHeight, which remaps the view() timeline, which jumps the
+     transform: a 900->915px height change displaced a mid-animation block by
+     58px at an unchanged scroll position. Only blocks still inside their
+     animation range jump, which is exactly how it was reported from a real
+     phone — the cards shiver while the 1x ones sit still.
+
+     There is no CSS-only fix: every scroll-driven timeline is measured against
+     a viewport that mobile browsers deliberately resize mid-gesture. So the
+     effect is scoped to pointing devices, where the viewport is stable.
+     See docs/decisions/0003-no-parallax-on-touch.md. */
+  @media (hover: hover) and (pointer: fine) {
+    #splash, #tjenester, #kontakt, #om {
+      animation: parallax-exit linear both;
+      animation-timeline: view();
+      /* "exit" is the phase where the block leaves the top of the viewport.
+         Do not write "exit-crossing 0% exit 100%": mixing two named ranges
+         produced a span the scroll barely entered, so the block sat pinned at
+         the from-keyframe and nothing visibly moved. */
+      animation-range: exit;
+      will-change: transform;
+    }
   }
 }
 
