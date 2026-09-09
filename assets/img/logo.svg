@@ -1,9 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Explicit white, never currentColor: this file is loaded through an <img>,
-       which cannot inherit color from the page. currentColor would resolve to
-       black and then vanish under the nav's mix-blend-mode: difference.
-       The nav's blend mode inverts this to dark over the white blocks. -->
+  <!-- PLASSHOLDER-LOGO. Explicit white, never currentColor: this file is loaded
+       through an <img>, which cannot inherit color from the page. currentColor
+       would resolve to black and then vanish under the nav's
+       mix-blend-mode: difference. The nav's blend inverts this to dark over the
+       white blocks.
+
+       Georgia italic rather than Cormorant Infant: an SVG loaded through <img>
+       cannot use the site's self-hosted webfonts, so this stands in until a
+       real logo exists. See docs/image-spec.md. -->
   <rect x="1" y="1" width="98" height="98" fill="none" stroke="#ffffff" stroke-width="1.5"/>
-  <text x="50" y="56" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
-        font-style="italic" font-size="30" fill="#ffffff">HLT</text>
+  <g font-family="Georgia, 'Times New Roman', serif" font-style="italic"
+     font-size="27" fill="#ffffff" text-anchor="middle">
+    <text x="50" y="45" letter-spacing="1">HLT</text>
+    <text x="50" y="76" letter-spacing="1">SØM</text>
+  </g>
 </svg>

@@ -24,6 +24,12 @@ test('logo and burger are fixed and always visible', async ({ page }) => {
   await expect(page.locator('.site-nav__burger')).toBeVisible();
 });
 
+test('the logo reads HLT over SØM on two lines', () => {
+  const svg = readFileSync(new URL('../../assets/img/logo.svg', import.meta.url), 'utf8');
+  const lines = [...svg.matchAll(/<text[^>]*>([^<]+)<\/text>/g)].map((m) => m[1].trim());
+  expect(lines).toEqual(['HLT', 'SØM']);
+});
+
 test('the burger bars are centred under the MENY label', async ({ page }) => {
   // Optically this needs the label's trailing letter-spacing compensated,
   // otherwise "MENY" sits a couple of pixels left of true centre.
