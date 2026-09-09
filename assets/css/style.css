@@ -412,7 +412,7 @@ html { scroll-behavior: smooth; }
      A transformed element creates a stacking context and would otherwise
      outrank a static footer, hence the explicit position/z-index. */
   position: relative;
-  z-index: 1;
+  z-index: 5;
   background: var(--ink);
   color: var(--paper);
   text-align: center;
@@ -430,44 +430,26 @@ html { scroll-behavior: smooth; }
    compositor via scroll-driven animations — no scroll listener, no jank on
    mid-range phones. Browsers without support simply scroll normally, which is
    a complete page. */
-@supports (animation-timeline: view()) {
-  @keyframes parallax-exit {
-    from { transform: translateY(0); }
-    /* POSITIVE, and this matters: the block has to LAG the page to look slower.
-       A negative value moves it with the scroll and it leaves faster than
-       normal — measured at -1.17x, which reads as "the parallax is broken".
-       80% x 0.5 = 40%, measured at -0.48x (half speed) on a 1440x900 desktop.
-       tests/e2e/motion.spec.js measures this rather than trusting it. */
-    to   { transform: translateY(calc(80% * var(--parallax-factor))); }
-  }
+/* ---------- parallax ----------
+   Implemented in main.js, NOT with CSS scroll-driven animations.
 
-  /* Every block, block 1 included — but only where the viewport stays put while
-     you scroll.
+   `animation-timeline: view()` and `scroll()` both measure progress against the
+   scrollport. Mobile browsers resize that scrollport as their toolbar hides
+   mid-drag, which remaps the timeline and moves a block independently of the
+   scroll — measured at a 58px jump at an unchanged scroll position, and visible
+   on a real phone as shivering cards. There is no CSS-only way around it.
 
-     On a touch device, dragging slowly shows and hides the browser toolbar.
-     That changes innerHeight, which remaps the view() timeline, which jumps the
-     transform: a 900->915px height change displaced a mid-animation block by
-     58px at an unchanged scroll position. Only blocks still inside their
-     animation range jump, which is exactly how it was reported from a real
-     phone — the cards shiver while the 1x ones sit still.
+   main.js computes the offset from document coordinates alone (scrollY,
+   offsetTop, offsetHeight), none of which change when the toolbar hides.
+   See docs/decisions/0004-parallax-in-javascript.md.
 
-     There is no CSS-only fix: every scroll-driven timeline is measured against
-     a viewport that mobile browsers deliberately resize mid-gesture. So the
-     effect is scoped to pointing devices, where the viewport is stable.
-     See docs/decisions/0003-no-parallax-on-touch.md. */
-  @media (hover: hover) and (pointer: fine) {
-    #splash, #tjenester, #kontakt, #om {
-      animation: parallax-exit linear both;
-      animation-timeline: view();
-      /* "exit" is the phase where the block leaves the top of the viewport.
-         Do not write "exit-crossing 0% exit 100%": mixing two named ranges
-         produced a span the scroll barely entered, so the block sat pinned at
-         the from-keyframe and nothing visibly moved. */
-      animation-range: exit;
-      will-change: transform;
-    }
-  }
-}
+   Paint order is explicit below rather than left to whichever elements happen
+   to carry a transform at a given moment: each block must arrive OVER the one
+   it is covering, and the footer over block 4. */
+#splash            { z-index: 1; }
+#tjenester         { position: relative; z-index: 2; }
+#kontakt           { position: relative; z-index: 3; }
+#om                { position: relative; z-index: 4; }
 
 /* ---------- reduced motion ----------
    A calm page, not a broken one. */

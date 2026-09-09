@@ -46,19 +46,21 @@ spec records why.
   `src` will fail a test.
 - **The colour tokens are derived from the carousel photographs**, not picked independently. If
   the photography changes substantially, re-derive them — `docs/image-spec.md` explains how.
-- **Parallax is deliberately OFF on touch devices** (`@media (hover: hover) and (pointer: fine)`).
-  Mobile browsers resize the viewport as their toolbar hides mid-drag, which remaps the `view()`
-  timeline and makes mid-animation blocks visibly jump — 58px, measured. Re-enabling it globally
-  looks like an improvement and ships a shivering page; a test fails if you try. See
-  `docs/decisions/0003-no-parallax-on-touch.md`.
+- **Parallax is JavaScript, and must stay keyed to document coordinates only.** Never
+  reintroduce `innerHeight`, `clientHeight`, `visualViewport` or `getBoundingClientRect` into
+  `initParallax` — a test forbids each by name. CSS scroll-driven animations look like the
+  better tool and are how this was first built; they measure against the scrollport, which
+  mobile browsers resize mid-drag, which made blocks jump 58px on a real phone. See
+  `docs/decisions/0004-parallax-in-javascript.md` (supersedes 0003).
+- **Blocks carry explicit `z-index: 1..4`, the footer `5`.** With JavaScript only the moving
+  block has a transform, so without these an exiting block paints over the one arriving.
 - **The footer never parallaxes, and carries `position: relative; z-index: 1`.** It is shorter
   than the viewport so there is no exit phase to animate, and the z-index is what stops the
   lagging last block sliding over it (57px on a phone). It must stay static while scrolling.
-- **The parallax keyframe translates by a POSITIVE amount.** It looks inverted for an "exit"
-  animation and is not: a block has to lag the page to appear slower. A negative value drags it
-  along with the scroll and it leaves *faster* than normal — measured at -1.17x, which reads as
-  "the parallax is broken". Likewise `animation-range: exit`, never `exit-crossing 0% exit
-  100%`. Both traps are recorded in spec §5, and a test measures effective scroll speed.
+- **The parallax offset is POSITIVE.** It looks inverted and is not: a block has to lag the
+  page to appear slower. A negative value drags it along with the scroll and it leaves *faster*
+  than normal — measured at -1.17x, which reads as "the parallax is broken". A test measures
+  effective scroll speed rather than trusting the code.
 - **`.site-nav__burger-label` has `margin-right: -.18em`.** Not dead code: letter-spacing is
   applied after the last letter too, so "MENY" would sit visibly off-centre above the bars
   without it.

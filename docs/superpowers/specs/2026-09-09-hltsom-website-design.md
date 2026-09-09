@@ -183,43 +183,44 @@ than describing the intent.
 | Effect | Behaviour |
 |---|---|
 | Carousel | Crossfade 1.2s, hold 5s. Pauses while the tab is hidden. With a single image, no timer runs at all |
-| Parallax | Outgoing block translates at roughly **0.5×** scroll speed; incoming block at **1×**. Applies to **all four blocks**, the splash included, on **pointing devices only** — [ADR 0003](../../decisions/0003-no-parallax-on-touch.md). The footer never parallaxes |
+| Parallax | Outgoing block translates at **0.5×** scroll speed; incoming block at **1×**. Applies to **all four blocks** including the splash, on **every device** — [ADR 0004](../../decisions/0004-parallax-in-javascript.md). The footer never parallaxes |
 | Smooth scroll | On anchor navigation only |
 
-Parallax is implemented with **CSS scroll-driven animations** (`animation-timeline: view()`),
-not JS scroll handlers. It runs on the compositor, which is the difference between smooth and
-janky on a mid-range Android. Browsers without support simply scroll normally — the page is
-complete without the effect.
+Parallax is implemented in **JavaScript**, computed from document coordinates only
+([ADR 0004](../../decisions/0004-parallax-in-javascript.md)).
 
-**Two traps, both hit during implementation and both now measured by tests:**
+It was originally built with CSS scroll-driven animations for the compositor. That failed on
+real phones: `animation-timeline: view()` measures progress against the scrollport, and mobile
+browsers resize the scrollport as the toolbar hides mid-drag, remapping the timeline and jumping
+mid-animation blocks by up to 58px at an unchanged scroll position. There is no CSS-only fix —
+`scroll()` normalises against the same viewport.
 
-1. **The translate must be positive.** To look *slower*, a block has to lag behind the page. A
-   negative `translateY` moves it with the scroll and it exits *faster* than normal — measured
-   at −1.17× while looking entirely plausible in code review.
-2. **`animation-range: exit`, not `exit-crossing 0% exit 100%`.** Mixing two named ranges
-   produced a span the scroll barely entered, so the block stayed pinned at the from-keyframe
-   and nothing moved.
+`main.js` uses `scrollY`, `offsetTop` and `offsetHeight`, none of which a toolbar can change.
+**Never reintroduce `innerHeight`, `clientHeight`, `visualViewport` or `getBoundingClientRect`
+into that function** — a test forbids each of them by name, because that is precisely the bug.
 
-`translateY(80% × --parallax-factor)` = 40% measures −0.48× on desktop.
+Cost of leaving the compositor, measured rather than assumed: mobile Lighthouse unchanged at 95,
+**0ms total blocking time**. Without JavaScript there is no parallax; it is decoration.
 
-**The ratio is approximate, by nature.** It drifts between about −0.2× and −0.65× depending on
-how tall a block is relative to the viewport, because the translate is a percentage of the
-block while the exit range is not. Measured: splash −0.60, tjenester −0.48, kontakt −0.62, om
-−0.56 on a 1440×900 desktop; −0.61, −0.22, −0.60, −0.30 on a Pixel 7. The design intent is
-"clearly slower than the page", so the tests bound the failures that matter — no movement at
-all, or movement at normal speed — rather than policing a decimal.
+**The translate must be positive.** To look *slower*, a block has to lag behind the page. A
+negative offset moves it with the scroll and it exits *faster* than normal — measured at −1.17×
+while looking entirely plausible in code review. This trap survives the move to JavaScript.
 
-**Scope:** all four blocks including the splash, on pointing devices only
-(`@media (hover: hover) and (pointer: fine)`). The splash was originally excluded, which left
-the very first transition a visitor sees with no effect at all.
+**The maths is now exact.** A block exits over precisely its own height of scrolling, so
+displacing it by `height × factor` leaves it at `(1 − factor)` of scroll speed:
+`--parallax-factor: .5` means literally half speed.
 
-**Touch devices get no parallax** — [ADR 0003](../../decisions/0003-no-parallax-on-touch.md).
-Mobile browsers resize the viewport as their toolbar hides during a drag, which remaps the
-`view()` timeline and makes mid-animation blocks jump: a 900→915px height change displaced a
-block by 58px at an unchanged scroll position. It was briefly enabled everywhere on the
-argument that a mobile-first brief should not hide the effect from phones; that was reasoned
-rather than tested, and a real device showed it shivering. Do not re-enable it globally — a
-test fails if you do.
+**The ratio is now uniform.** Measured −0.50/−0.51/−0.51 on a 1440×900 desktop and
+−0.50/−0.51/−0.51/−0.55 on a Pixel 7. The earlier CSS implementation drifted between −0.22 and
+−0.62 depending on block height; the document-coordinate model removed that variance.
+
+**Scope:** all four blocks including the splash, on every device. The splash was originally
+excluded, which left the very first transition a visitor sees with no effect at all.
+
+**Paint order is explicit** (`z-index: 1..4` on the blocks, `5` on the footer). With the CSS
+implementation every block carried an animation and therefore a stacking context, so DOM order
+decided what covered what. With JavaScript only the moving block has a transform, which would
+otherwise make an exiting block paint *over* the one arriving.
 
 **The footer is excluded and must stay excluded.** It is far shorter than the viewport, so
 there is no exit phase to animate. It carries `position: relative; z-index: 1` so the lagging

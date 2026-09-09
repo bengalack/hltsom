@@ -2,15 +2,25 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 const css = () => readFileSync(new URL('../../assets/css/style.css', import.meta.url), 'utf8');
+const js = () => readFileSync(new URL('../../assets/js/main.js', import.meta.url), 'utf8');
 
-test('parallax is implemented with CSS scroll-driven animations, not JS', () => {
-  expect(css()).toContain('animation-timeline: view()');
-  const js = readFileSync(new URL('../../assets/js/main.js', import.meta.url), 'utf8');
-  expect(js).not.toContain("addEventListener('scroll'");
+test('parallax does not use a viewport-relative timeline', () => {
+  // animation-timeline: view() and scroll() are both measured against the
+  // scrollport, which mobile browsers resize mid-drag. That was the shiver.
+  // Comments are stripped first: the stylesheet explains the trap by name, and
+  // matching that prose would fail for the wrong reason.
+  const withoutComments = css().replace(/\/\*[\s\S]*?\*\//g, '');
+  expect(withoutComments).not.toContain('animation-timeline');
 });
 
-test('parallax is guarded behind @supports', () => {
-  expect(css()).toContain('@supports (animation-timeline: view())');
+test('the parallax computation never reads the viewport height', () => {
+  // The root cause of the mobile jitter, guarded at source: the offset must be
+  // a function of document coordinates alone.
+  const src = js();
+  const start = src.indexOf('function initParallax');
+  expect(start, 'initParallax is missing').toBeGreaterThan(-1);
+  const body = src.slice(start, src.indexOf('initParallax();', start));
+  expect(body).not.toMatch(/innerHeight|clientHeight|visualViewport|getBoundingClientRect/);
 });
 
 test('reduced motion disables smooth scrolling', async ({ page }) => {
@@ -19,11 +29,17 @@ test('reduced motion disables smooth scrolling', async ({ page }) => {
   await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
 });
 
-test('reduced motion removes block animations', async ({ page }) => {
+test('reduced motion leaves every block untransformed', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  const name = await page.locator('#tjenester').evaluate((el) => getComputedStyle(el).animationName);
-  expect(name).toBe('none');
+  await page.evaluate(() => window.scrollTo(0, 1500));
+  await page.waitForTimeout(250);
+  const transforms = await page.evaluate(() =>
+    ['#splash', '#tjenester', '#kontakt', '#om'].map(
+      (s) => getComputedStyle(document.querySelector(s)).transform
+    )
+  );
+  expect(transforms).toEqual(['none', 'none', 'none', 'none']);
 });
 
 /* Measure the effective scroll speed of a block while it is leaving the top of
@@ -82,8 +98,7 @@ async function expectHalfSpeed(page, selector) {
   return speed;
 }
 
-test('an outgoing block travels at roughly half scroll speed', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'parallax is disabled on touch devices');
+test('an outgoing block travels at roughly half scroll speed', async ({ page }) => {
   // The actual brief: "blocks going out of screen will scroll half speed".
   // A negative translateY makes a block move FASTER than the page, not slower —
   // that was the original bug, and it measured -1.17 while looking plausible.
@@ -91,8 +106,7 @@ test('an outgoing block travels at roughly half scroll speed', async ({ page }, 
   await expectHalfSpeed(page, '#tjenester');
 });
 
-test('every block parallaxes, including the splash', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'parallax is disabled on touch devices');
+test('every block parallaxes, including the splash', async ({ page }) => {
   // The brief says "the blocks", which includes block 1. It was originally
   // scoped to blocks 2-4 only, so the hero left the screen at normal speed
   // while everything below it lagged — the first transition anyone sees.
@@ -102,8 +116,7 @@ test('every block parallaxes, including the splash', async ({ page }, testInfo) 
   }
 });
 
-test('an incoming block passes over the outgoing one, not under it', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'parallax is disabled on touch devices');
+test('an incoming block passes over the outgoing one, not under it', async ({ page }) => {
   // The lagging block must not cover the block arriving over it. #splash is
   // position: relative, so paint order is worth asserting rather than assuming.
   await page.goto('/');
@@ -122,8 +135,7 @@ test('an incoming block passes over the outgoing one, not under it', async ({ pa
   expect(winner, 'the outgoing splash is painting over the incoming block').toBe('tjenester');
 });
 
-test('the parallax slows blocks down rather than speeding them up', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'parallax is disabled on touch devices');
+test('the parallax slows blocks down rather than speeding them up', async ({ page }) => {
   // Guards the sign specifically: anything at or below -1.0 is a speed-up.
   await page.goto('/');
   const speed = await exitSpeed(page, '#om');
@@ -157,23 +169,30 @@ test('the footer stays put and is never covered by the lagging last block', asyn
     const ft = document.querySelector('.site-footer');
     const paddingTop = parseFloat(getComputedStyle(ft).paddingTop);
     const positions = new Set();
+    // the deepest actual content in the block, ignoring its padding
+    const lastContent = om.querySelector('.split__body p:last-of-type') || om;
     let worstGap = Infinity;
+    let contentHidden = false;
     const max = document.documentElement.scrollHeight - window.innerHeight;
     for (let y = 0; y <= max; y += 40) {
       window.scrollTo(0, y);
       await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
       worstGap = Math.min(worstGap, ft.getBoundingClientRect().top - om.getBoundingClientRect().bottom);
       positions.add(Math.round(ft.getBoundingClientRect().top + window.scrollY));
+      const c = lastContent.getBoundingClientRect();
+      const f = ft.getBoundingClientRect();
+      // content is hidden only if it is on screen AND reaches under the footer
+      if (c.bottom > f.top && c.top < f.top && c.bottom > 0) contentHidden = true;
     }
     window.scrollTo(0, 0);
-    return { worstGap, paddingTop, distinctPositions: positions.size };
+    return { worstGap, paddingTop, distinctPositions: positions.size, contentHidden };
   });
 
   expect(r.worstGap, `a gap of ${r.worstGap}px opened above the footer`).toBeLessThanOrEqual(0.5);
-  expect(Math.abs(Math.min(0, r.worstGap)),
-    'the overlap has grown past the footer padding and will clip content')
-    .toBeLessThanOrEqual(r.paddingTop);
   expect(r.distinctPositions, 'the footer moves while scrolling — it must be static').toBe(1);
+  expect(r.contentHidden,
+    'the last block lagged far enough for the footer to cover its text')
+    .toBe(false);
 });
 
 test('the footer paints above the last block, and has no parallax of its own', async ({ page }) => {
@@ -196,18 +215,68 @@ test('the footer paints above the last block, and has no parallax of its own', a
   expect(r.transform).toBe('none');
 });
 
-test('parallax is off where the viewport resizes during scroll', async ({ page }, testInfo) => {
-  // On a real phone, dragging slowly shows/hides the browser toolbar. That
-  // changes innerHeight, which remaps the view() timeline, which jumps the
-  // transform. Measured: a 900->915 height change moved a mid-animation block
-  // 58px at an unchanged scroll position. Only blocks NOT at 1x jump, which is
-  // exactly what was reported from a real device.
+test('parallax works on touch devices too', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'touch devices only');
   await page.goto('/');
-  const names = await page.evaluate(() =>
-    ['#splash', '#tjenester', '#kontakt', '#om'].map(
-      (s) => getComputedStyle(document.querySelector(s)).animationName
-    )
-  );
-  expect(names, 'parallax must be disabled on touch devices').toEqual(['none', 'none', 'none', 'none']);
+  for (const sel of ['#splash', '#tjenester', '#kontakt', '#om']) {
+    const speed = await exitSpeed(page, sel);
+    expect(speed, `${sel} has no parallax on mobile`).not.toBeNull();
+    expect(speed, `${sel} not slowed: ${speed}`).toBeLessThan(CLEARLY_SLOWED);
+    expect(speed, `${sel} almost pinned: ${speed}`).toBeGreaterThan(SLOWER_THAN_PAGE);
+  }
+});
+
+test('the offset is a pure function of document coordinates', async ({ page }, testInfo) => {
+  /* This is THE mobile bug, tested at its root.
+
+     A phone hides its toolbar as you drag, changing innerHeight mid-gesture.
+     Anything deriving its position from the viewport gets remapped and jumps
+     while the scroll has not moved — measured at 58px with the old CSS
+     view() timeline, and reported from a real device as shivering cards.
+
+     Testing this by resizing the window is misleading: that ALSO changes
+     100svh, so the splash resizes and every offsetTop below it legitimately
+     moves. A real toolbar collapse does not change svh — that is what svh is
+     for. So the honest property to assert is that the applied offset matches
+     what document coordinates alone predict, both before and after a resize.
+     A viewport-dependent implementation cannot satisfy this. */
+  test.skip(testInfo.project.name !== 'mobile', 'touch devices only');
+  await page.goto('/');
+  await page.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; });
+
+  const check = () => page.evaluate(() => {
+    const travel = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--parallax-factor')
+    );
+    const y = window.scrollY;
+    return ['#splash', '#tjenester', '#kontakt', '#om'].map((sel) => {
+      const el = document.querySelector(sel);
+      const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
+      const actual = m ? Number(m[1].split(',')[5]) : 0;
+      const p = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
+      return { sel, actual, expected: p * el.offsetHeight * travel };
+    });
+  });
+
+  for (const scrollY of [700, 1500, 2200]) {
+    await page.evaluate((v) => window.scrollTo(0, v), scrollY);
+    await page.waitForTimeout(160);
+
+    for (const r of await check()) {
+      expect(Math.abs(r.actual - r.expected),
+        `${r.sel} at scrollY ${scrollY}: applied ${r.actual.toFixed(1)}px, document coordinates predict ${r.expected.toFixed(1)}px`
+      ).toBeLessThanOrEqual(1);
+    }
+
+    // and again once the viewport height has changed underneath it
+    await page.setViewportSize({ width: 412, height: 975 });
+    await page.waitForTimeout(220);
+    for (const r of await check()) {
+      expect(Math.abs(r.actual - r.expected),
+        `${r.sel} after a viewport height change: applied ${r.actual.toFixed(1)}px, predicted ${r.expected.toFixed(1)}px — the offset depends on viewport height`
+      ).toBeLessThanOrEqual(1);
+    }
+    await page.setViewportSize({ width: 412, height: 915 });
+    await page.waitForTimeout(160);
+  }
 });

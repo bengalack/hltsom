@@ -158,3 +158,71 @@ function initMap() {
 }
 
 initMap();
+
+/* ---------- parallax ----------
+   Outgoing blocks travel at roughly half scroll speed; incoming blocks at 1x.
+
+   Why JavaScript, when CSS scroll-driven animations are smoother? Because
+   `animation-timeline: view()` measures progress against the scrollport, and a
+   mobile browser resizes the scrollport as its toolbar hides mid-drag. That
+   remaps the timeline and moves the block independently of the scroll: measured
+   at a 58px jump at an unchanged scroll position, and reported from a real
+   phone as cards that shiver while the ones at 1x sit still.
+
+   Everything below is computed from DOCUMENT coordinates — scrollY, offsetTop,
+   offsetHeight. None of them change when the toolbar hides, so the toolbar
+   cannot move a block relative to its neighbours. offsetTop and offsetHeight
+   are layout values and are unaffected by the transforms applied here, so this
+   cannot feed back on itself.
+
+   Do not reintroduce innerHeight, clientHeight or visualViewport in this
+   function — a test forbids it, because that is precisely the bug.
+   See docs/decisions/0004-parallax-in-javascript.md. */
+function initParallax() {
+  const blocks = Array.from(
+    document.querySelectorAll('#splash, #tjenester, #kontakt, #om')
+  );
+  if (blocks.length === 0) return;
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let ticking = false;
+
+  const clear = () => {
+    for (const el of blocks) el.style.transform = '';
+  };
+
+  const update = () => {
+    ticking = false;
+    if (reduce.matches) { clear(); return; }
+
+    const styles = getComputedStyle(document.documentElement);
+    const factor = parseFloat(styles.getPropertyValue('--parallax-factor'));
+    /* The maths is exact here, unlike the CSS version this replaced. A block
+       exits over exactly its own height of scrolling, so displacing it by
+       (height x factor) leaves it travelling at (1 - factor) of scroll speed.
+       --parallax-factor: .5 therefore means literally half speed. */
+    const travel = Number.isFinite(factor) ? factor : 0.5;
+    const y = window.scrollY;
+
+    for (const el of blocks) {
+      const height = el.offsetHeight;
+      if (height === 0) continue;
+      // 0 while the block is fully in view, 1 once it has completely left the top
+      let progress = (y - el.offsetTop) / height;
+      progress = progress < 0 ? 0 : progress > 1 ? 1 : progress;
+      el.style.transform =
+        progress === 0 ? '' : `translate3d(0, ${(progress * height * travel).toFixed(2)}px, 0)`;
+    }
+  };
+
+  const request = () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  };
+
+  window.addEventListener('scroll', request, { passive: true });
+  window.addEventListener('resize', request);
+  reduce.addEventListener('change', update);
+  update();
+}
+
+initParallax();
