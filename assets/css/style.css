@@ -1,0 +1,79 @@
+/* ============================================================
+   HLT Søm — design tokens
+   Change the look here. Avoid hard-coding values further down.
+   ============================================================ */
+:root {
+  --ink:   #14110f;   /* near-black, warmer than #000 */
+  --paper: #fdfcfa;   /* off-white; pure #fff glares on phone screens */
+
+  --scrim-top:    rgba(18, 15, 12, .42);
+  --scrim-bottom: rgba(18, 15, 12, .60);
+
+  --carousel-interval: 5s;
+  --crossfade: 1200ms;
+  --parallax-factor: .5;
+
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;  --space-4: 16px;
+  --space-6: 24px;  --space-8: 32px;  --space-12: 48px; --space-16: 64px;
+  --space-24: 96px;
+
+  --measure: 62ch;  /* max line length for readable body copy */
+}
+
+/* ---------- self-hosted fonts ----------
+   Never load these from Google's CDN: it sends visitor IPs to Google, which is
+   a GDPR problem in the EU, and costs an extra connection. */
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter-200.woff2') format('woff2');
+  font-weight: 200; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter-300.woff2') format('woff2');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter-400.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Infant';
+  src: url('../fonts/cormorant-infant-italic-400.woff2') format('woff2');
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+img, picture, iframe { max-width: 100%; display: block; }
+
+h1, h2 { font-weight: 400; margin: 0; }
+
+h1 {
+  font-family: 'Cormorant Infant', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  line-height: .9;
+}
+
+a { color: inherit; }
+
+/* ---------- block scaffolding ---------- */
+.block { padding: var(--space-24) var(--space-6); }
+.block--light { background: var(--paper); color: var(--ink); }
+.block--dark  { background: var(--ink);   color: var(--paper); }
+
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
