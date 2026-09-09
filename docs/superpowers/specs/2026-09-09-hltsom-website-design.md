@@ -311,7 +311,7 @@ zero-build choice — it is the strongest security posture available to a websit
 |---|---|
 | HTTPS | Enforced by GitHub Pages (Let's Encrypt) |
 | CSP | `<meta http-equiv="Content-Security-Policy">` |
-| SRI | On the Cloudflare Analytics script |
+| Third-party script pinning | **Not SRI.** Cloudflare's `beacon.min.js` is unversioned and updated in place, so a pinned integrity hash would break the script the first time Cloudflare ships an update. The origin is restricted by CSP `script-src` instead, which is the appropriate control for a mutable third-party endpoint |
 | Referrer | `Referrer-Policy: strict-origin-when-cross-origin` |
 | Third-party code | Analytics only. The map iframe loads solely on user action |
 
@@ -329,6 +329,20 @@ conclusion and requires an ADR.**
 ---
 
 ## 11. Verification
+
+### 11.1 Automated (Playwright, `tests/`)
+
+Automated coverage exists for the regressions that manual checking misses on the fifth visit —
+above all the privacy guarantee, which is a legal obligation rather than a preference:
+
+- **No cookies and no Google request before the map is clicked**; the iframe appears only after
+- Burger overlay: opens, traps focus, closes on Escape, restores focus, `aria-expanded` correct
+- Carousel advances, and holds still under `prefers-reduced-motion`
+- Parallax and smooth scroll disabled under `prefers-reduced-motion`
+- **No root-absolute asset paths** anywhere in the markup or CSS (§7.2)
+- No `package.json` at the repository root (§12.1)
+
+### 11.2 Manual
 
 Done means all of these pass:
 
@@ -365,7 +379,11 @@ readable instead of becoming an archaeology exercise.
 These are the decisions most likely to be "helpfully" undone by someone who did not read the
 reasoning:
 
-1. **No build step, no `package.json`, no npm dependencies** (D2)
+1. **The site has no build step and no dependencies** (D2). `index.html`, the CSS and the JS are
+   served exactly as committed. **One exception:** `tests/` contains its own isolated
+   `package.json` for Playwright. It is developer tooling only — never deployed, never
+   referenced by the site, and deletable without affecting anything. There must be no
+   `package.json` at the repository root.
 2. **No visible header** — the floating logo and burger are deliberate (D4)
 3. **Norwegian only** (D1)
 4. **No cookies before consent** — the map's click-to-load is a legal mechanism, not a
