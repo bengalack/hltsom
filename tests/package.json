@@ -1,0 +1,14 @@
+{
+  "name": "hltsom-tests",
+  "private": true,
+  "type": "module",
+  "description": "Developer tooling only. Never deployed. Safe to delete.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "serve": "^14.2.4"
+  }
+}
