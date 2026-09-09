@@ -1,4 +1,12 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bengalack.github.io/hltsom/sitemap.xml
+# The page carries <meta name="robots" content="noindex, nofollow"> while it
+# still holds placeholder content. Crawling stays ALLOWED on purpose: a crawler
+# blocked here could not read that tag, and a URL blocked by robots.txt can
+# still surface in results as a bare link. Allow + noindex is the combination
+# that actually keeps the page out of search.
+#
+# On launch day, once every placeholder is replaced: remove the noindex tag from
+# index.html and uncomment the Sitemap line below.
+# Sitemap: https://bengalack.github.io/hltsom/sitemap.xml

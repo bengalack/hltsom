@@ -312,6 +312,38 @@ What actually moves a local service business:
 
 Items 1–7 are in scope. Item 3 is a documented task for the owner.
 
+### 9.1 Pre-launch: the site is deliberately not indexable
+
+While `index.html` still contains placeholder content, it carries:
+
+```html
+<meta name="robots" content="noindex, nofollow">
+```
+
+**Why this matters more than it looks.** The placeholders include a fake phone number, a fake
+organisation number and `[Gateadresse] 00`. Wrong NAP data reaching a search index is worse
+than no data at all: it is slow to correct, it can be scraped into third-party directories, and
+it will not match the Google Business Profile created later — which is the single strongest
+local-SEO signal this business has.
+
+**Why `robots.txt` still allows crawling.** Blocking crawlers with `Disallow: /` looks stronger
+but is weaker: a crawler that cannot fetch the page cannot read the `noindex` tag, and a URL
+blocked in `robots.txt` can still appear in results as a bare link if something references it.
+`Allow` plus `noindex` is the combination that actually keeps a page out of search. The
+`Sitemap:` line is commented out for the same reason — a sitemap is an active invitation.
+
+**This is not access control.** Anyone with the URL can read the page, and GitHub Pages on the
+free tier cannot be password-protected. `noindex` governs search visibility only.
+
+**Removing it is a launch-day step, not a cleanup task.** `tests/e2e/prelaunch.spec.js` binds
+the tag to the placeholders in both directions: the suite fails if the tag is removed while
+placeholders remain, *and* fails if placeholders are all gone while the tag is still present.
+Neither mistake can pass silently.
+
+**Consequence for Lighthouse:** while the tag is in place, the SEO category will not reach 100
+— Lighthouse correctly reports the page as blocked from indexing. That is the intended state.
+Do not remove the tag to raise the score.
+
 ---
 
 ## 10. Security and privacy
@@ -361,7 +393,10 @@ Done means all of these pass:
 
 - [ ] Lighthouse (mobile, throttled): Performance **≥ 90**, Accessibility **100**,
       Best Practices **≥ 95**, SEO **100**. An image-led page will not hit 100 on
-      Performance; 90 is the honest bar, and Accessibility has no excuse for missing 100
+      Performance; 90 is the honest bar, and Accessibility has no excuse for missing 100.
+      **While the pre-launch `noindex` tag is in place (§9.1), SEO will not reach 100** —
+      Lighthouse correctly reports the page as blocked from indexing. Read the SEO number
+      as "100 apart from the deliberate noindex" until launch day
 - [ ] Rendered on a real phone, not just a resized desktop window
 - [ ] Keyboard-only: menu opens, focus is trapped, Escape closes, focus returns
 - [ ] `prefers-reduced-motion: reduce` — carousel, parallax and smooth scroll all stop
@@ -426,6 +461,10 @@ reasoning:
 Currently the site is served at `https://bengalack.github.io/hltsom/`. When `hltsom.no` is
 registered:
 
+0. **Replace every placeholder first** — real org.nr, phone, email, address, opening hours,
+   services, about text and photography. Then remove the `noindex` tag (§9.1) and uncomment the
+   `Sitemap:` line in `robots.txt`. `tests/e2e/prelaunch.spec.js` will fail until the tag and
+   the placeholders agree, in either direction.
 1. Add a `CNAME` file at the repo root containing `hltsom.no`
 2. DNS: four `A` records at the apex pointing to GitHub Pages' IPs, plus a `www` `CNAME` to
    `bengalack.github.io`

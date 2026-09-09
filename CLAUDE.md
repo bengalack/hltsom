@@ -48,3 +48,16 @@ cd tests && npm install && npx playwright install chromium && npx playwright tes
 The suite guards the constraints above — consent-gated map, focus handling, reduced motion,
 relative paths, and the absence of a root `package.json`. If one fails, the constraint was
 broken; fix the code, not the test.
+
+## Pre-launch: the site is intentionally not indexable
+
+`index.html` carries `<meta name="robots" content="noindex, nofollow">` while placeholder
+content remains, so fake contact details never reach a search index. `robots.txt` still allows
+crawling on purpose — a blocked crawler cannot read the noindex tag, which would make it
+useless. Do not add `Disallow: /`.
+
+`tests/e2e/prelaunch.spec.js` binds the tag to the placeholders in both directions, so neither
+"published fake data" nor "forgot to remove noindex on launch day" can pass silently.
+
+Lighthouse will not score SEO 100 while the tag is present. That is correct. Do not remove the
+tag to raise the score. See spec §9.1.

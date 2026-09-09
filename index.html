@@ -18,6 +18,15 @@
     form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
+  <!-- PRE-LAUNCH: keep this while any placeholder content remains. Fake NAP data
+       (phone, address, org.nr) must never reach a search index — wrong contact
+       details are worse than none, and they poison the Google Business Profile
+       match later. Remove this ONE line on launch day, together with the last
+       placeholder. A test in tests/e2e/prelaunch.spec.js keeps the two in step.
+       Note: do NOT also add "Disallow: /" to robots.txt — a blocked crawler
+       cannot read this tag, which makes the noindex useless. -->
+  <meta name="robots" content="noindex, nofollow">
+
   <link rel="canonical" href="https://bengalack.github.io/hltsom/">
 
   <meta property="og:type" content="website">
