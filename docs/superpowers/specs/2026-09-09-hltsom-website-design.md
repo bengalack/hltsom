@@ -185,6 +185,20 @@ Inter is a deliberately neutral choice: the serif wordmark carries all the perso
 quiet sans keeps the contrast legible rather than competing with it. It is reversible — a
 different sans is an ordinary spec edit, not an ADR.
 
+**Alternatives considered and parked** (compared side by side on 2026-09-09 against the real
+wordmark, tagline and Norwegian body copy — do not re-litigate without new information):
+
+| Face | Verdict |
+|---|---|
+| **Helvetica** | The owner's favourite, and the benchmark for this comparison. Not shippable: licensed, system-only |
+| **Inter** | **Chosen.** Closest of the open-licence candidates — neo-grotesque skeleton, horizontal terminals, large x-height. Its apertures are slightly more open than Helvetica's *by design*, which is why it stays crisp at 12px on a phone where true Helvetica goes muddy. On a mobile-first page that trade favours Inter |
+| **Nimbus Sans** | A truer Helvetica metric clone, but an older design with weaker hinting and no variable version. Renders worse on phones. Rejected for the same mobile-first reason |
+| **Archivo** | More industrial, closer to Helvetica *signage* in attitude. Viable, less refined at small sizes |
+| **Roboto** | Furthest from Helvetica of those tested: narrower, humanist angled terminals, Android-system-UI association. Rejected — a lateral move, not an upgrade |
+
+If the sans is ever revisited, the change worth making is toward **warmth** (a humanist face
+such as Work Sans or Karla) to match a craft business — not sideways to another grotesque.
+
 **Why lowercase.** Three round, flowing shapes read as a signature rather than a sign. The `ø`
 slash runs parallel to the italic angle and ties into the neighbouring letters — the detail
 that makes the word hang together. Uppercase `Ø` sits in its own box and loses this.
