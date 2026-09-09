@@ -40,3 +40,39 @@ test('on desktop blocks 2 and 4 place the image on the left', async ({ page }, t
     expect(media.x).toBeLessThan(body.x);
   }
 });
+
+test('block images are circular, with a transparent surround', async ({ page }) => {
+  // The passepartout is a crop, not a frame: the page ground shows around the
+  // circle, so the photograph reads as an object rather than a pasted rectangle.
+  await page.goto('/');
+  for (const sel of ['#tjenester .split__figure', '#om .split__figure']) {
+    const fig = page.locator(sel);
+    const box = await fig.boundingBox();
+    expect(Math.abs(box.width - box.height), `${sel} is not square`).toBeLessThanOrEqual(1.5);
+
+    const style = await fig.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { radius: cs.borderRadius, overflow: cs.overflow, bg: cs.backgroundColor };
+    });
+    expect(style.radius, `${sel} is not round`).toMatch(/50%/);
+    expect(style.overflow).toBe('hidden');
+    // transparent surround: no painted background on the mount itself
+    expect(style.bg).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+  }
+});
+
+test('block images actually load', async ({ page }) => {
+  await page.goto('/');
+  for (const sel of ['#tjenester .split__figure img', '#om .split__figure img']) {
+    const painted = await page.locator(sel).evaluate((el) => el.complete && el.naturalWidth > 0);
+    expect(painted, `${sel} did not load`).toBe(true);
+  }
+});
+
+test('block images are square sources, matching the circular crop', async ({ page }) => {
+  await page.goto('/');
+  for (const sel of ['#tjenester .split__figure img', '#om .split__figure img']) {
+    const d = await page.locator(sel).evaluate((el) => ({ w: el.naturalWidth, h: el.naturalHeight }));
+    expect(d.w, `${sel} is not a square source`).toBe(d.h);
+  }
+});

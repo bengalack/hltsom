@@ -148,6 +148,12 @@ function initMap() {
     iframe.referrerPolicy = 'no-referrer-when-downgrade';
     iframe.allowFullscreen = true;
     link.replaceWith(iframe);
+
+    /* The OpenStreetMap credit belongs to the preview only. Once Google's map
+       is on screen the line is both wrong and confusing — Google carries its
+       own attribution inside the iframe. The ODbL obligation ends with the
+       tiles it describes. */
+    document.querySelector('.map__attribution')?.remove();
   });
 }
 

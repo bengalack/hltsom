@@ -354,7 +354,15 @@ them (§6). Provenance and licence for each file are recorded in `docs/image-spe
 Known limitation: the source tops out at 1024px wide. That is acceptable for placeholders and
 **not** acceptable for the final site — real photography must meet the 2400px figure below.
 
-The **block images** (Tjenester, Om meg) remain marked SVG placeholders.
+The **block images** (Tjenester, Om meg) are also CC0 photographs now, presented inside a
+**circular passepartout**: the image is cropped to a circle and the page ground shows around
+it, with no painted mount, so the photograph reads as an object on the page rather than a
+rectangle pasted into it. Sources must therefore be **square with a centred subject** — a
+circle throws the corners away.
+
+`om.webp` holds a machine rather than a face on purpose. That slot is meant for a portrait of
+the tailor, and filling it with a stranger's portrait would misrepresent the business even as a
+placeholder. It is the first image to replace.
 
 `docs/image-spec.md` records — per slot — the subject, aspect ratio, minimum resolution and
 export recipe.

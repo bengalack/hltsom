@@ -291,6 +291,26 @@ html { scroll-behavior: smooth; }
   .split__body  { order: 0; }
 }
 
+/* Circular passepartout for the block images. The mount itself is transparent:
+   the image is cropped to a circle and the page ground shows around it, so the
+   photograph reads as an object on the page rather than a rectangle pasted in.
+   Only blocks 2 and 4 use this — block 3's media pane holds the map. */
+.split__figure {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
+}
+.split__figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .split__body h2 {
   font-size: clamp(26px, 4vw, 34px);
   font-weight: 300;

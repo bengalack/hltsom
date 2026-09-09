@@ -2,8 +2,7 @@
 
 ## Current state
 
-The **carousel** uses four real CC0 photographs. The **block images** (Tjenester, Om meg) and
-the logo are still marked SVG placeholders.
+All photography is real CC0 imagery. Only the **logo** is still a marked SVG placeholder.
 
 | File | Subject | Licence | Source |
 |------|---------|---------|--------|
@@ -11,6 +10,17 @@ the logo are still marked SVG placeholders.
 | `splash-2.webp` | Sewing machine, needle and fabric | CC0 | <https://www.rawpixel.com/image/6032464> |
 | `splash-3.webp` | Presser foot on cloth | CC0 | <https://www.rawpixel.com/image/5948921> |
 | `splash-4.webp` | Thread spool and thimble | CC0 | <https://www.rawpixel.com/image/6032574> |
+| `tjenester.webp` | Threaded needle on linen | CC0 | <https://www.rawpixel.com/image/5913686> |
+| `om.webp` | Sewing machine stitching fabric | CC0 | <https://www.rawpixel.com/image/5904447> |
+
+**The block images are square (900×900) on purpose** — they sit inside a circular
+passepartout, so anything outside the inscribed circle is never seen. Supply replacements as
+squares with the subject centred, or the crop will cut the wrong thing.
+
+**`om.webp` is the one to replace first.** That slot is meant to be a portrait of the tailor;
+a photograph of a person builds more trust than any copy on the page. It currently holds a
+machine rather than a face, deliberately: putting a stranger's portrait in the "Om meg" slot
+would misrepresent the business even as a placeholder.
 
 Found via [Openverse](https://openverse.org). CC0 means no attribution is required and
 commercial use is permitted; the table exists so provenance is never in doubt.
@@ -78,8 +88,8 @@ different photo. Changing the typeface is a spec edit (§6.1).
 | Slot | File stem | Aspect | Min resolution | Subject |
 |------|-----------|--------|----------------|---------|
 | Splash carousel | `splash-1`, `splash-2`, … | Fills viewport; crops from centre | 2400×1600 | Workshop, fabric, hands at work. Dark, quiet centre |
-| Block 2 (Tjenester) | `tjenester` | 4:5 portrait | 1200×1500 | Work in progress: pinning, hemming, a machine |
-| Block 4 (Om meg) | `om` | 4:5 portrait | 1200×1500 | The tailor herself. A face builds more trust than any copy |
+| Block 2 (Tjenester) | `tjenester` | **1:1 square** | 1200×1200 | Work in progress: pinning, hemming, a machine. Subject centred — a circle crops the corners away |
+| Block 4 (Om meg) | `om` | **1:1 square** | 1200×1200 | The tailor herself. A face builds more trust than any copy. Subject centred |
 | Logo | `logo` | 1:1 | 400×400, or SVG | Simple enough to read at 100×100 |
 
 ### Adding a carousel slide

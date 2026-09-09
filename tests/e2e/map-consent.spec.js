@@ -77,6 +77,18 @@ test('the OpenStreetMap attribution is present and visible', async ({ page }) =>
   await expect(attribution.locator('a')).toHaveAttribute('href', /openstreetmap\.org\/copyright/);
 });
 
+test('the OpenStreetMap credit disappears once Google takes over', async ({ page }) => {
+  // The credit describes the preview tiles. Leaving it under a Google map is
+  // confusing and no longer required — Google attributes itself inside the frame.
+  await page.goto('/');
+  await expect(page.locator('.map__attribution')).toBeVisible();
+
+  await page.locator('.map__load').click();
+
+  await expect(page.locator('#kontakt iframe')).toHaveCount(1);
+  await expect(page.locator('.map__attribution')).toHaveCount(0);
+});
+
 test('contact details are tappable links', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#kontakt a[href^="tel:"]')).toHaveCount(1);
