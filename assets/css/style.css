@@ -401,16 +401,24 @@ html { scroll-behavior: smooth; }
    a complete page. */
 @supports (animation-timeline: view()) {
   @keyframes parallax-exit {
-    /* only the exit half of the range is animated; entry stays at 1x */
     from { transform: translateY(0); }
-    to   { transform: translateY(calc(-50% * var(--parallax-factor))); }
+    /* POSITIVE, and this matters: the block has to LAG the page to look slower.
+       A negative value moves it with the scroll and it leaves faster than
+       normal — measured at -1.17x, which reads as "the parallax is broken".
+       80% x 0.5 = 40%, measured at -0.48x (half speed) on a 1440x900 desktop.
+       tests/e2e/motion.spec.js measures this rather than trusting it. */
+    to   { transform: translateY(calc(80% * var(--parallax-factor))); }
   }
 
   @media (min-width: 800px) {
     #tjenester, #kontakt, #om {
       animation: parallax-exit linear both;
       animation-timeline: view();
-      animation-range: exit-crossing 0% exit 100%;
+      /* "exit" is the phase where the block leaves the top of the viewport.
+         Do not write "exit-crossing 0% exit 100%": mixing two named ranges
+         produced a span the scroll barely entered, so the block sat pinned at
+         the from-keyframe and nothing visibly moved. */
+      animation-range: exit;
       will-change: transform;
     }
   }

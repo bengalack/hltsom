@@ -178,6 +178,21 @@ not JS scroll handlers. It runs on the compositor, which is the difference betwe
 janky on a mid-range Android. Browsers without support simply scroll normally — the page is
 complete without the effect.
 
+**Two traps, both hit during implementation and both now measured by tests:**
+
+1. **The translate must be positive.** To look *slower*, a block has to lag behind the page. A
+   negative `translateY` moves it with the scroll and it exits *faster* than normal — measured
+   at −1.17× while looking entirely plausible in code review.
+2. **`animation-range: exit`, not `exit-crossing 0% exit 100%`.** Mixing two named ranges
+   produced a span the scroll barely entered, so the block stayed pinned at the from-keyframe
+   and nothing moved.
+
+`translateY(80% × --parallax-factor)` = 40% measures −0.48× on desktop. `tests/e2e/motion.spec.js`
+measures effective speed rather than asserting the CSS merely exists — an earlier test compared
+computed-transform *strings*, which passed happily against a completely broken implementation.
+That test must also disable `scroll-behavior: smooth` first, or every sample is taken while the
+page is still gliding.
+
 **`prefers-reduced-motion: reduce` disables the carousel (first image holds), the parallax,
 and smooth scrolling.** This is a calm version of the page, not a broken one.
 
