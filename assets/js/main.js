@@ -179,9 +179,20 @@ initMap();
    function — a test forbids it, because that is precisely the bug.
    See docs/decisions/0004-parallax-in-javascript.md. */
 function initParallax() {
-  const blocks = Array.from(
+  /* Every block EXCEPT the last one.
+
+     A lagging block slides down over whatever follows it, which is the effect:
+     the next block arrives over it. The last block has only the footer beneath
+     it, and the footer cannot parallax — it is far shorter than the viewport,
+     so it has no exit phase. If the last block lagged, it would drift relative
+     to the footer, and on mobile that is plainly visible: the page scrolls far
+     enough for the last block to animate, and rubber-band overscroll at the
+     bottom exaggerates it further. Keeping the last block static is what holds
+     the footer attached to it. */
+  const all = Array.from(
     document.querySelectorAll('#splash, #tjenester, #kontakt, #om')
   );
+  const blocks = all.slice(0, -1);
   if (blocks.length === 0) return;
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -226,3 +237,28 @@ function initParallax() {
 }
 
 initParallax();
+
+/* ---------- in-page navigation ----------
+   The blocks are transformed by the parallax, and a browser resolves an anchor
+   against the element's RENDERED position. A plain href="#splash" therefore
+   lands short by however much the target happens to be displaced, and the
+   visitor converges on it by clicking repeatedly — which is exactly how the
+   logo behaved before this existed.
+
+   offsetTop is a layout value and ignores transforms, so one click lands. */
+function initAnchors() {
+  for (const link of document.querySelectorAll('a[href^="#"]')) {
+    link.addEventListener('click', (event) => {
+      const id = link.getAttribute('href').slice(1);
+      const target = document.getElementById(id);
+      if (!target) return;
+      event.preventDefault();
+      window.scrollTo({
+        top: target.offsetTop,
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      });
+    });
+  }
+}
+
+initAnchors();

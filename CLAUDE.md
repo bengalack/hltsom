@@ -52,6 +52,14 @@ spec records why.
   better tool and are how this was first built; they measure against the scrollport, which
   mobile browsers resize mid-drag, which made blocks jump 58px on a real phone. See
   `docs/decisions/0004-parallax-in-javascript.md` (supersedes 0003).
+- **The LAST block never parallaxes.** Only the static footer sits beneath it, so a lagging
+  block 4 would drift away from the footer — visible on mobile, where the page is long enough
+  for it to animate and rubber-band overscroll exaggerates it. Keeping it still is how the
+  footer stays attached. A test asserts the distance between them never changes.
+- **In-page links scroll to `offsetTop` from JavaScript, not via the browser's anchor jump.**
+  Browsers resolve anchors against the *rendered* position, which the parallax has displaced, so
+  a plain `href="#splash"` lands short and needs repeated clicks. Do not "simplify" this back to
+  plain anchors.
 - **Blocks carry explicit `z-index: 1..4`, the footer `5`.** With JavaScript only the moving
   block has a transform, so without these an exiting block paints over the one arriving.
 - **The footer never parallaxes, and carries `position: relative; z-index: 1`.** It is shorter

@@ -147,3 +147,52 @@ test('clicking outside the dropdown closes it', async ({ page }, testInfo) => {
   await page.mouse.click(120, 600);
   await expect(page.locator('#meny')).toBeHidden();
 });
+
+/* Wait for a smooth scroll to come to rest. */
+async function settle(page) {
+  await page.waitForFunction(() => {
+    return new Promise((resolve) => {
+      let last = window.scrollY, still = 0;
+      const tick = () => {
+        if (window.scrollY === last) { still++; } else { still = 0; last = window.scrollY; }
+        still > 3 ? resolve(true) : requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }, null, { timeout: 5000 });
+}
+
+test('one click on the logo returns to the very top', async ({ page }) => {
+  /* The blocks are transformed while scrolled, and the browser resolves an
+     anchor against the element's RENDERED position. So a plain href="#splash"
+     lands short, and you converge on the top by clicking repeatedly — which is
+     exactly what was reported. Navigation must use layout positions. */
+  await page.goto('/');
+  await page.evaluate(() => window.scrollTo(0, 2000));
+  await settle(page);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
+  await page.locator('.site-nav__logo').click();
+  await settle(page);
+
+  const y = await page.evaluate(() => window.scrollY);
+  expect(y, `one click left the page at ${y}, not the top`).toBeLessThanOrEqual(2);
+});
+
+test('one click on a menu link lands on that block', async ({ page }) => {
+  await page.goto('/');
+  for (const id of ['tjenester', 'kontakt', 'om']) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await settle(page);
+    await page.locator('.site-nav__burger').click();
+    await page.locator(`#meny a[href="#${id}"]`).click();
+    await settle(page);
+
+    const r = await page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      return { scrollY: window.scrollY, layoutTop: el.offsetTop };
+    }, `#${id}`);
+    expect(Math.abs(r.scrollY - r.layoutTop),
+      `#${id}: landed at ${r.scrollY}, block starts at ${r.layoutTop}`).toBeLessThanOrEqual(3);
+  }
+});

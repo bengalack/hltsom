@@ -161,6 +161,13 @@ supporting detail and comes last.
 - Logo top-left, burger top-right. Both **fixed**, visible over every block.
 - They sit over both white and black backgrounds, so they use `mix-blend-mode: difference`:
   automatically legible against either, with no JS scroll-watching and nothing to desynchronise.
+- **In-page links are handled in JavaScript and scroll to `offsetTop`, not by the browser's own
+  anchor jump.** The blocks are transformed by the parallax, and a browser resolves an anchor
+  against the element's *rendered* position — so a plain `href="#splash"` lands short by
+  whatever the target is currently displaced, and the visitor converges on it by clicking
+  repeatedly. That is exactly how the logo behaved: one click from scrollY 2000 left the page at
+  420 instead of 0. `offsetTop` is a layout value and ignores transforms. Tests assert one click
+  lands.
 - Burger opens a menu with four links to the blocks. **Two presentations, one implementation:**
   a full-screen takeover below 800px, a dropdown panel anchored under the burger at 800px and
   above. Same DOM, same JavaScript — the difference is entirely CSS. Scroll-lock applies to the
@@ -183,7 +190,7 @@ than describing the intent.
 | Effect | Behaviour |
 |---|---|
 | Carousel | Crossfade 1.2s, hold 5s. Pauses while the tab is hidden. With a single image, no timer runs at all |
-| Parallax | Outgoing block translates at **0.5×** scroll speed; incoming block at **1×**. Applies to **all four blocks** including the splash, on **every device** — [ADR 0004](../../decisions/0004-parallax-in-javascript.md). The footer never parallaxes |
+| Parallax | Outgoing block translates at **0.5×** scroll speed; incoming block at **1×**. Applies to **every block except the last**, on every device — [ADR 0004](../../decisions/0004-parallax-in-javascript.md). Block 4 and the footer are both static, and stay attached |
 | Smooth scroll | On anchor navigation only |
 
 Parallax is implemented in **JavaScript**, computed from document coordinates only
@@ -221,6 +228,14 @@ excluded, which left the very first transition a visitor sees with no effect at 
 implementation every block carried an animation and therefore a stacking context, so DOM order
 decided what covered what. With JavaScript only the moving block has a transform, which would
 otherwise make an exiting block paint *over* the one arriving.
+
+**The last block is excluded, and must stay excluded.** A lagging block slides down over
+whatever follows it — that is the effect. Block 4 has only the footer beneath it, and the footer
+cannot parallax: it is far shorter than the viewport, so it has no exit phase. If block 4
+lagged, it would drift away from the footer. On desktop this was invisible because the page is
+too short for block 4 to animate at all; on mobile the page is long enough, and rubber-band
+overscroll at the bottom made it obvious. Keeping block 4 static is *how* the footer stays
+attached to it — a test asserts the distance between them never changes.
 
 **The footer is excluded and must stay excluded.** It is far shorter than the viewport, so
 there is no exit phase to animate. It carries `position: relative; z-index: 1` so the lagging

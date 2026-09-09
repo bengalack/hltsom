@@ -106,14 +106,17 @@ test('an outgoing block travels at roughly half scroll speed', async ({ page }) 
   await expectHalfSpeed(page, '#tjenester');
 });
 
-test('every block parallaxes, including the splash', async ({ page }) => {
-  // The brief says "the blocks", which includes block 1. It was originally
-  // scoped to blocks 2-4 only, so the hero left the screen at normal speed
-  // while everything below it lagged — the first transition anyone sees.
+test('every block parallaxes except the last, which holds the footer', async ({ page }) => {
+  // The brief says "the blocks", which includes block 1 — it was originally
+  // scoped to blocks 2-4, so the first transition anyone sees had no effect.
+  // The LAST block is excluded on purpose: only the static footer sits beneath
+  // it, and a lagging block would drift away from it.
   await page.goto('/');
-  for (const sel of ['#splash', '#tjenester', '#kontakt', '#om']) {
+  for (const sel of ['#splash', '#tjenester', '#kontakt']) {
     await expectHalfSpeed(page, sel);
   }
+  const last = await exitSpeed(page, '#om');
+  expect(last, 'the last block must not parallax — the footer is attached to it').toBeNull();
 });
 
 test('an incoming block passes over the outgoing one, not under it', async ({ page }) => {
@@ -138,8 +141,8 @@ test('an incoming block passes over the outgoing one, not under it', async ({ pa
 test('the parallax slows blocks down rather than speeding them up', async ({ page }) => {
   // Guards the sign specifically: anything at or below -1.0 is a speed-up.
   await page.goto('/');
-  const speed = await exitSpeed(page, '#om');
-  expect(speed, 'block moves faster than the page — translateY sign is inverted').toBeGreaterThan(-1.0);
+  const speed = await exitSpeed(page, '#kontakt');
+  expect(speed, 'block moves faster than the page — the offset sign is inverted').toBeGreaterThan(-1.0);
 });
 
 test('the page still scrolls to every block', async ({ page }) => {
@@ -218,12 +221,43 @@ test('the footer paints above the last block, and has no parallax of its own', a
 test('parallax works on touch devices too', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'touch devices only');
   await page.goto('/');
-  for (const sel of ['#splash', '#tjenester', '#kontakt', '#om']) {
+  for (const sel of ['#splash', '#tjenester', '#kontakt']) {
     const speed = await exitSpeed(page, sel);
     expect(speed, `${sel} has no parallax on mobile`).not.toBeNull();
     expect(speed, `${sel} not slowed: ${speed}`).toBeLessThan(CLEARLY_SLOWED);
     expect(speed, `${sel} almost pinned: ${speed}`).toBeGreaterThan(SLOWER_THAN_PAGE);
   }
+});
+
+test('the footer and the last block never move relative to each other', async ({ page }) => {
+  /* "Statically linked": whatever the scroll does, the distance between the
+     bottom of block 4 and the top of the footer must not change. On mobile the
+     page is long enough for the last block to animate, and rubber-band
+     overscroll at the bottom pushes it further still — which is where this was
+     visible. Keeping the last block untransformed is what holds them together. */
+  await page.goto('/');
+  const r = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    const om = document.querySelector('#om');
+    const ft = document.querySelector('.site-footer');
+    const gaps = new Set();
+    let maxTransform = 0;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    for (let y = 0; y <= max; y += 25) {
+      window.scrollTo(0, y);
+      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+      gaps.add(Math.round(ft.getBoundingClientRect().top - om.getBoundingClientRect().bottom));
+      const m = getComputedStyle(om).transform.match(/matrix\(([^)]+)\)/);
+      maxTransform = Math.max(maxTransform, m ? Math.abs(Number(m[1].split(',')[5])) : 0);
+    }
+    window.scrollTo(0, 0);
+    return { distinctGaps: [...gaps], maxTransform };
+  });
+
+  expect(r.maxTransform, 'the last block is being transformed and will drift from the footer')
+    .toBeLessThanOrEqual(0.5);
+  expect(r.distinctGaps.length,
+    `the gap to the footer changed while scrolling: ${r.distinctGaps.join(', ')}px`).toBe(1);
 });
 
 test('the offset is a pure function of document coordinates', async ({ page }, testInfo) => {
