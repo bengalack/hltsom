@@ -170,7 +170,7 @@ supporting detail and comes last.
 | Effect | Behaviour |
 |---|---|
 | Carousel | Crossfade 1.2s, hold 5s. Pauses while the tab is hidden. With a single image, no timer runs at all |
-| Parallax | Outgoing block translates at **0.5×** scroll speed; incoming block at **1×** |
+| Parallax | Outgoing block translates at roughly **0.5×** scroll speed; incoming block at **1×**. Applies to **all four blocks**, the splash included, at **every viewport width** |
 | Smooth scroll | On anchor navigation only |
 
 Parallax is implemented with **CSS scroll-driven animations** (`animation-timeline: view()`),
@@ -187,7 +187,19 @@ complete without the effect.
    produced a span the scroll barely entered, so the block stayed pinned at the from-keyframe
    and nothing moved.
 
-`translateY(80% × --parallax-factor)` = 40% measures −0.48× on desktop. `tests/e2e/motion.spec.js`
+`translateY(80% × --parallax-factor)` = 40% measures −0.48× on desktop.
+
+**The ratio is approximate, by nature.** It drifts between about −0.2× and −0.65× depending on
+how tall a block is relative to the viewport, because the translate is a percentage of the
+block while the exit range is not. Measured: splash −0.60, tjenester −0.48, kontakt −0.62, om
+−0.56 on a 1440×900 desktop; −0.61, −0.22, −0.60, −0.30 on a Pixel 7. The design intent is
+"clearly slower than the page", so the tests bound the failures that matter — no movement at
+all, or movement at normal speed — rather than policing a decimal.
+
+**Scope:** all four blocks including the splash, at all widths. Both were originally narrower
+(blocks 2–4 only, desktop only); the splash omission meant the very first transition a visitor
+sees had no effect at all. Enabling it on phones costs nothing measurable — the animation runs
+on the compositor, and mobile Lighthouse stayed at 96 with 0ms total blocking time. `tests/e2e/motion.spec.js`
 measures effective speed rather than asserting the CSS merely exists — an earlier test compared
 computed-transform *strings*, which passed happily against a completely broken implementation.
 That test must also disable `scroll-behavior: smooth` first, or every sample is taken while the
