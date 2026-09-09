@@ -1,5 +1,18 @@
 # HLT Søm Website Implementation Plan
 
+> **⚠ EXECUTED AND PARTLY SUPERSEDED — 2026-09-09.**
+> This is a historical record of how the site was built, kept for its reasoning. It is **not**
+> a description of the current site, and it is not a document to work from now.
+>
+> Parts of it have since been reversed. In particular Task 8 describes a **click-to-load map**
+> that no longer exists — see `docs/decisions/0001-map-loads-without-click.md`. The menu is now
+> a dropdown on desktop, the carousel uses four photographs with deferred loading, and the
+> colour tokens have changed.
+>
+> **For the current design, read
+> `docs/superpowers/specs/2026-09-09-hltsom-website-design.md` plus every ADR in
+> `docs/decisions/`.**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a one-page, mobile-first Norwegian website for a Bærum tailoring business, deployed on GitHub Pages with no build step.

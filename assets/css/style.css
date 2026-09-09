@@ -2,12 +2,29 @@
    HLT Søm — design tokens
    Change the look here. Avoid hard-coding values further down.
    ============================================================ */
+/* The palette is derived from the carousel photography, not chosen beside it.
+   The four CC0 splash images average #72675d, #685c56, #675950 and #8c7e68 —
+   a tight warm brown-taupe family. Every colour below is built on that hue, so
+   the page reads as one material rather than as photos dropped into a template.
+   If the photography is ever replaced with a different palette, re-derive these
+   (docs/image-spec.md explains how). */
 :root {
-  --ink:   #14110f;   /* near-black, warmer than #000 */
-  --paper: #fdfcfa;   /* off-white; pure #fff glares on phone screens */
+  --ink:      #171310;   /* warm near-black, pulled toward the photos' brown */
+  --ink-soft: #4a4038;   /* secondary text on light ground */
+  --paper:    #faf7f2;   /* warm off-white; pure #fff glares next to these photos */
+  --paper-dim:#efe8dd;   /* panels and image placeholders */
 
-  --scrim-top:    rgba(18, 15, 12, .42);
-  --scrim-bottom: rgba(18, 15, 12, .60);
+  /* Brass, from the thread and needle highlights in splash-4.
+     Contrast on --paper is ~3.7:1 — fine for borders, rules and large text,
+     NOT sufficient for body copy. Never use it as a text colour at 17px. */
+  --accent:   #9a7b4f;
+
+  --hairline-dark:  rgba(23, 19, 16, .14);
+  --hairline-light: rgba(250, 247, 242, .22);
+
+  --scrim-edge:   rgba(20, 16, 12, .82);  /* top band, keeps the nav legible */
+  --scrim-top:    rgba(20, 16, 12, .42);
+  --scrim-bottom: rgba(20, 16, 12, .62);
 
   --carousel-interval: 5s;
   --crossfade: 1200ms;
@@ -90,25 +107,33 @@ a { color: inherit; }
 
 .splash__slides { position: absolute; inset: 0; }
 
+/* Slides are <img> elements, not CSS backgrounds, so slides 2-n can be
+   deferred: only the first has a src in the markup, and main.js fills the rest
+   after load. With backgrounds every slide would fetch immediately. */
 .splash__slide {
   position: absolute; inset: 0;
-  background-size: cover;
-  background-position: center;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center;
   opacity: 0;
   transition: opacity var(--crossfade) ease-in-out;
 }
 .splash__slide.is-active { opacity: 1; }
 
-/* One rule per slide. These live here rather than in a style attribute because
-   the page's CSP forbids inline styles — an inline background-image is silently
-   blocked and the splash renders black. Add a slide by adding a div in
-   index.html AND a rule here. See docs/image-spec.md. */
-.splash__slide--1 { background-image: url('../img/splash-1.svg'); }
-.splash__slide--2 { background-image: url('../img/splash-2.svg'); }
-
 .splash__scrim {
   position: absolute; inset: 0;
-  background: linear-gradient(var(--scrim-top), var(--scrim-bottom));
+  /* The extra darkening in the first 15% is for the fixed logo and burger.
+     mix-blend-mode: difference resolves cleanly against the black and white
+     blocks, but washes out over a mid-tone photograph — and the top of a
+     carousel image is whatever the photographer happened to shoot. This band
+     gives the nav a predictable ground on every slide. */
+  background: linear-gradient(
+    to bottom,
+    var(--scrim-edge) 0%,
+    rgba(20, 16, 12, .60) 10%,
+    var(--scrim-top) 32%,
+    var(--scrim-bottom) 100%
+  );
 }
 
 .splash__content {
@@ -213,7 +238,32 @@ a { color: inherit; }
 }
 .nav-overlay__list a:hover { text-decoration: underline; text-underline-offset: 6px; }
 
+/* Full-screen takeover is a phone pattern: it exists because a thumb needs big
+   targets and the screen has no room for anything else. On a desktop it is
+   heavy-handed — the same four links fit in a small panel under the burger
+   without hiding the page. Same DOM, same JavaScript, different presentation. */
+@media (min-width: 800px) {
+  .nav-overlay {
+    inset: auto;
+    top: 78px;
+    right: var(--space-4);
+    display: block;
+    width: min(260px, calc(100vw - 2 * var(--space-4)));
+    padding: var(--space-6) var(--space-8);
+    border-top: 2px solid var(--accent);
+    box-shadow: 0 18px 50px rgba(23, 19, 16, .38);
+  }
+  .nav-overlay__list { text-align: left; }
+  .nav-overlay__list li + li { margin-top: var(--space-4); }
+  .nav-overlay__list a { font-size: 17px; letter-spacing: .13em; }
+}
+
+/* Scroll lock belongs to the takeover only. Locking the page behind a small
+   dropdown would strand a desktop visitor mid-page. */
 body.nav-open { overflow: hidden; }
+@media (min-width: 800px) {
+  body.nav-open { overflow: visible; }
+}
 
 html { scroll-behavior: smooth; }
 
@@ -251,9 +301,9 @@ html { scroll-behavior: smooth; }
 }
 .service-list li {
   padding: var(--space-3) 0;
-  border-bottom: 1px solid rgba(20, 17, 15, .12);
+  border-bottom: 1px solid var(--hairline-dark);
 }
-.block--dark .service-list li { border-bottom-color: rgba(253, 252, 250, .18); }
+.block--dark .service-list li { border-bottom-color: var(--hairline-light); }
 
 /* ---------- block 3: contact ---------- */
 /* Mobile: text FIRST, map second — the deliberate exception to the image-first
@@ -270,27 +320,14 @@ html { scroll-behavior: smooth; }
 }
 
 .contact-line { margin: 0 0 var(--space-6); }
-.contact-line a { text-decoration: none; border-bottom: 1px solid rgba(253, 252, 250, .35); }
+.contact-line a { text-decoration: none; border-bottom: 1px solid var(--accent); }
 .contact-line a:hover { border-bottom-color: currentColor; }
 
-.map { aspect-ratio: 4 / 3; background: rgba(253, 252, 250, .06); }
-
-.map__load {
-  width: 100%; height: 100%;
-  display: grid; place-content: center; gap: var(--space-3);
-  padding: var(--space-8);
-  background: none;
-  border: 1px solid rgba(253, 252, 250, .28);
-  color: var(--paper);
-  font: inherit;
-  text-align: center;
-  cursor: pointer;
+.map {
+  aspect-ratio: 4 / 3;
+  background: var(--paper-dim);   /* visible while the lazy iframe is still loading */
 }
-.map__load:hover { background: rgba(253, 252, 250, .06); }
-.map__load-title { font-size: 18px; letter-spacing: .1em; text-transform: uppercase; font-weight: 300; }
-.map__load-note { font-size: 13px; opacity: .7; max-width: 34ch; margin: 0 auto; }
-
-.map iframe { width: 100%; height: 100%; border: 0; }
+.map iframe { width: 100%; height: 100%; border: 0; display: block; }
 
 /* ---------- footer ----------
    Black because block 4 is white: adjacent blocks always contrast. */
@@ -303,7 +340,7 @@ html { scroll-behavior: smooth; }
   font-weight: 300;
 }
 .site-footer p { margin: 0; line-height: 2; }
-.site-footer a { text-decoration: none; border-bottom: 1px solid rgba(253, 252, 250, .35); }
+.site-footer a { text-decoration: none; border-bottom: 1px solid var(--accent); }
 .site-footer span { padding: 0 var(--space-2); opacity: .4; }
 
 /* ---------- parallax ----------

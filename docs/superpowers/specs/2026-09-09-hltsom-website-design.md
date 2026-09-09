@@ -39,11 +39,13 @@ application: there is no booking, no cart, no account, no form.
 | D3 | Hosted on GitHub Pages, eventually at `hltsom.no` | Free, HTTPS included, deploy is `git push` |
 | D4 | Four full-height blocks + slim footer, no visible header | Client requirement; also the cleanest expression of the minimal brief |
 | D5 | Contact = phone, email, address; no contact form | No backend, no spam handling, no GDPR data processing. Phone is the natural channel for this business |
-| D6 | Embedded Google Map, behind a click-to-load poster | Client wants the map; click-to-load means no Google code and no cookies until the visitor asks, so no consent banner |
+| D6 | Embedded Google Map, loading automatically but deferred until its block nears the viewport | Owner requires no click. **Reversed by [ADR 0001](../../decisions/0001-map-loads-without-click.md)** — the original click-to-load design is gone, and with it the no-consent-banner property |
 | D7 | Cloudflare Web Analytics | Cookieless and free. No consent banner, no recurring bill that can lapse |
 | D8 | Self-hosted fonts, subset to Latin + æøå | Google Fonts CDN sends visitor IPs to Google (a GDPR problem in the EU) and costs an extra connection |
 | D9 | Wordmark is lowercase *søm* in Cormorant Infant Italic — **provisional** | Chosen from a live comparison; see [§6.1](#61-typography) for what must be re-checked |
-| D10 | All imagery is placeholder at launch of development | No photography exists yet; the image spec makes real photos a drop-in replacement |
+| D10 | All imagery is placeholder at launch of development | Carousel uses four CC0 photographs; block images remain SVG placeholders. See §8 |
+| D11 | Menu is a full-screen takeover on mobile, a dropdown panel on desktop | A takeover exists because a thumb needs large targets on a small screen. On desktop the same four links fit under the burger without hiding the page |
+| D12 | Colour palette is derived from the carousel photography | The photos are the loudest colour on the page; deriving the palette from them makes the site read as one material rather than as photos dropped into a template |
 
 ---
 
@@ -100,6 +102,11 @@ Right column: Google Map, click-to-load.
 The map replaces what would otherwise be a photo, so the block keeps the same two-column
 rhythm as blocks 2 and 4 without introducing a fifth visual element.
 
+**The map loads without any interaction**, deferred by an `IntersectionObserver` until the
+block nears the viewport. `loading="lazy"` alone was measured and does not defer an iframe on a
+fast connection — Chromium fetched Google at ~60ms. A `<noscript>` fallback carries the iframe
+for visitors without JavaScript. See [ADR 0001](../../decisions/0001-map-loads-without-click.md).
+
 ### 3.4 Block 4 — Om meg
 
 White background, dark text. Image left, text right (desktop). Who she is: name, background,
@@ -128,9 +135,9 @@ Mirroring the desktop alternation on a phone does not read as rhythm, it reads a
 inconsistency — hence image-first as the default rule.
 
 **Block 3 is a deliberate exception, and must stay one.** Its media pane holds the map, not a
-photograph. Under the default rule a phone visitor reaching Kontakt would meet an empty grey
-"Vis kart" box with the phone number pushed below it — burying the single most important
-element on the page behind a placeholder. The rule exists to serve the ten-second goal in §1;
+photograph. Under the default rule a phone visitor reaching Kontakt would meet a large map —
+possibly still blank while it loads — with the phone number pushed below it, burying the single
+most important element on the page. The rule exists to serve the ten-second goal in §1;
 applying it literally here would defeat that goal.
 
 An agent tidying this into consistency would be undoing the point. On mobile the map is
@@ -143,7 +150,10 @@ supporting detail and comes last.
 - Logo top-left, burger top-right. Both **fixed**, visible over every block.
 - They sit over both white and black backgrounds, so they use `mix-blend-mode: difference`:
   automatically legible against either, with no JS scroll-watching and nothing to desynchronise.
-- Burger opens a **full-screen overlay** with four links to the blocks.
+- Burger opens a menu with four links to the blocks. **Two presentations, one implementation:**
+  a full-screen takeover below 800px, a dropdown panel anchored under the burger at 800px and
+  above. Same DOM, same JavaScript — the difference is entirely CSS. Scroll-lock applies to the
+  takeover only; locking the page behind a small dropdown would strand a desktop visitor.
 - Overlay closes on: link click, Escape, outside click. Focus is trapped while open, and
   returns to the burger on close. `aria-expanded` reflects state.
 - In-page links smooth-scroll, unless reduced motion is requested.
@@ -174,13 +184,38 @@ All values live as CSS custom properties at the top of `assets/css/style.css` �
 place to change the look without hunting through rules.
 
 ```css
---ink:   #14110f;   /* near-black: warmer and less harsh than #000 */
---paper: #fdfcfa;   /* off-white: pure #fff glares on phone screens */
---scrim: rgba(18,15,12,.42) → rgba(18,15,12,.60);  /* splash overlay gradient */
+--ink:       #171310;   /* warm near-black, pulled toward the photography */
+--ink-soft:  #4a4038;   /* secondary text on light ground */
+--paper:     #faf7f2;   /* warm off-white; pure #fff glares beside these photos */
+--paper-dim: #efe8dd;   /* panels, image placeholders, map ground */
+--accent:    #9a7b4f;   /* brass, from thread and needle highlights */
+--hairline-dark:  rgba(23,19,16,.14);
+--hairline-light: rgba(250,247,242,.22);
+--scrim-edge: rgba(20,16,12,.82);   /* top band; see note below */
+--scrim: rgba(20,16,12,.42) → rgba(20,16,12,.62);  /* splash overlay gradient */
 --carousel-interval: 5s;
 --crossfade: 1200ms;
 --parallax-factor: .5;
 ```
+
+**The palette is derived, not chosen.** The four carousel photographs average `#72675d`,
+`#685c56`, `#675950` and `#8c7e68` — a tight warm brown-taupe family. Every colour above is
+built on that hue. The photography is the loudest colour on the page; a palette picked
+independently of it would read as stock imagery dropped into a template.
+
+`--accent` measures ~3.7:1 against `--paper`. That is sufficient for borders, rules and large
+text, and **insufficient for body copy** — never use it as a text colour at 17px. It appears as
+link underlines, the service-list rules and the dropdown's top border.
+
+If the photography is ever replaced with materially different colours, re-derive these values;
+`docs/image-spec.md` documents the method.
+
+**Why the scrim has a dark top band.** The fixed logo and burger use
+`mix-blend-mode: difference`, which resolves cleanly against black and white blocks but washes
+out over a mid-tone photograph — difference is at its weakest when the backdrop sits near 50%
+grey, because |255 − 128| lands back on the backdrop. The top of a carousel image is whatever
+the photographer happened to shoot, so the band forces a predictably dark ground for the nav.
+It must stay dark: nudging it toward mid-grey makes the nav *less* legible, not more.
 
 Spacing follows a 4px scale. Generous whitespace is a stated goal: when in doubt, more.
 
@@ -278,7 +313,17 @@ breaks silently in the other.
 
 ## 8. Image specification
 
-No photography exists yet. Everything ships as clearly-marked placeholders, and
+The **carousel** now uses four CC0 photographs (vintage Singer body, needle through fabric,
+presser foot on cloth, thread spool and thimble), sourced via Openverse and committed to
+`assets/img/`. They are placeholders in the sense that they are not *her* workshop — but they
+are real, coherent photography rather than grey rectangles, and the palette is derived from
+them (§6). Provenance and licence for each file are recorded in `docs/image-spec.md`.
+
+Known limitation: the source tops out at 1024px wide. That is acceptable for placeholders and
+**not** acceptable for the final site — real photography must meet the 2400px figure below.
+
+The **block images** (Tjenester, Om meg) remain marked SVG placeholders.
+
 `docs/image-spec.md` records — per slot — the subject, aspect ratio, minimum resolution and
 export recipe.
 
@@ -366,10 +411,20 @@ clickjacking protection is unavailable. For a static brochure page with no login
 no state, the residual risk is negligible. It is recorded here rather than glossed over,
 because moving off Pages later is the only real fix.
 
-**Privacy.** No cookies are set on load. Analytics is cookieless. The map sets Google cookies
-only after the visitor taps "Vis kart", which is the consent action. No consent banner is
-required as long as this holds — **adding any cookie-setting third party changes that
-conclusion and requires an ADR.**
+**Privacy — changed by [ADR 0001](../../decisions/0001-map-loads-without-click.md).**
+
+Analytics remains cookieless. **The map, however, now loads without any consent action, so
+Google sets cookies as soon as the contact block nears the viewport.** Under the Norwegian
+implementation of the EU ePrivacy rules, storing or accessing information on a visitor's device
+for non-essential purposes requires consent, and a Maps embed does exactly that.
+
+**Consequence: this site requires a cookie consent mechanism before it goes live.** It does not
+have one. This is tracked in §13 as an open item and is a launch blocker in its own right,
+separate from the placeholder content.
+
+Deferring the map until the visitor scrolls to the contact block reduces how many visitors are
+affected — someone who never reaches that block sets no cookies — but it is a mitigation, not
+compliance. The only way to restore the previous clean position is to return to click-to-load.
 
 ---
 
@@ -380,10 +435,14 @@ conclusion and requires an ADR.**
 Automated coverage exists for the regressions that manual checking misses on the fifth visit —
 above all the privacy guarantee, which is a legal obligation rather than a preference:
 
-- **No cookies and no Google request before the map is clicked**; the iframe appears only after
+- **The map does not load at the top of the page, and does load once the contact block is
+  reached** — this is what proves the IntersectionObserver deferral still works (ADR 0001)
 - Burger overlay: opens, traps focus, closes on Escape, restores focus, `aria-expanded` correct
 - Carousel advances, and holds still under `prefers-reduced-motion`
 - Parallax and smooth scroll disabled under `prefers-reduced-motion`
+- Menu is a dropdown on desktop and a full-screen takeover on mobile, with scroll-lock on the
+  takeover only
+- Only the first carousel slide is fetched with the page
 - **No root-absolute asset paths** anywhere in the markup or CSS (§7.2)
 - No `package.json` at the repository root (§12.1)
 
@@ -445,7 +504,8 @@ reasoning:
 
 | Item | Owner | Notes |
 |---|---|---|
-| Photography (carousel + 2 block images) | Owner | Blocks the site looking real; see §8 |
+| **Cookie consent mechanism** | Both | **Launch blocker.** Required by ADR 0001 — the map sets Google cookies without consent |
+| Photography (2 block images, and real carousel shots) | Owner | Carousel currently uses CC0 stand-ins at 1024px; final needs her own work at 2400px. See §8 |
 | Logo file (~100×100) | Owner | Placeholder until supplied |
 | Real content: services, about text, opening hours | Owner | Placeholders ship in Norwegian |
 | Real org.nr, email, phone, address | Owner | Placeholders in footer and block 3 |
@@ -461,7 +521,7 @@ reasoning:
 Currently the site is served at `https://bengalack.github.io/hltsom/`. When `hltsom.no` is
 registered:
 
-0. **Replace every placeholder first** — real org.nr, phone, email, address, opening hours,
+0. **Add the cookie consent mechanism** (ADR 0001). Then **replace every placeholder** — real org.nr, phone, email, address, opening hours,
    services, about text and photography. Then remove the `noindex` tag (§9.1) and uncomment the
    `Sitemap:` line in `robots.txt`. `tests/e2e/prelaunch.spec.js` will fail until the tag and
    the placeholders agree, in either direction.

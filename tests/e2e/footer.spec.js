@@ -7,7 +7,7 @@ test('footer is dark, centred, and holds org number, email and phone', async ({ 
   await expect(footer).toContainText('Organisasjonsnummer');
   await expect(footer).toContainText('E-post');
   await expect(footer).toContainText('Telefon');
-  await expect(footer).toHaveCSS('background-color', 'rgb(20, 17, 15)');
+  await expect(footer).toHaveCSS('background-color', 'rgb(23, 19, 16)');
 });
 
 test('footer contrasts with the block above it', async ({ page }) => {

@@ -36,6 +36,7 @@
   <meta property="og:url" content="https://bengalack.github.io/hltsom/">
 
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="assets/img/splash-1.webp" fetchpriority="high">
   <link rel="stylesheet" href="assets/css/style.css">
 
   <!-- Values marked [..] are placeholders. Replace them together with the visible
@@ -84,12 +85,19 @@
 
   <main>
     <section id="splash" class="splash">
+      <!-- PLASSHOLDER-BILDER: CC0, se docs/image-spec.md for kilder og lisens.
+           Only the first slide has a src; main.js fills in the rest after load,
+           so the splash costs ~35KB up front instead of ~166KB. Slides 2-4 must
+           keep data-src, never src — a test enforces it. -->
       <div class="splash__slides" aria-hidden="true">
-        <!-- Background images live in style.css, not in a style attribute: the
-             CSP forbids inline styles. Adding a slide means adding both a div
-             here and a .splash__slide--N rule in the stylesheet. -->
-        <div class="splash__slide splash__slide--1 is-active"></div>
-        <div class="splash__slide splash__slide--2"></div>
+        <img class="splash__slide is-active" src="assets/img/splash-1.webp" alt=""
+             fetchpriority="high" decoding="async" width="1024" height="766">
+        <img class="splash__slide" data-src="assets/img/splash-2.webp" alt=""
+             decoding="async" width="1024" height="733">
+        <img class="splash__slide" data-src="assets/img/splash-3.webp" alt=""
+             decoding="async" width="1024" height="633">
+        <img class="splash__slide" data-src="assets/img/splash-4.webp" alt=""
+             decoding="async" width="768" height="1024">
       </div>
       <div class="splash__scrim" aria-hidden="true"></div>
       <div class="splash__content">
@@ -143,12 +151,23 @@
           </p>
         </div>
         <div class="split__media">
-          <div class="map">
-            <button class="map__load" type="button"
-                    data-map-src="https://www.google.com/maps?q=Sandvika%2C%20B%C3%A6rum&output=embed">
-              <span class="map__load-title">Vis kart</span>
-              <span class="map__load-note">Kartet lastes fra Google først når du trykker her.</span>
-            </button>
+          <!-- The map loads on its own, with no click. main.js inserts the iframe
+               via IntersectionObserver as this block nears the viewport;
+               loading="lazy" alone was measured and does NOT defer it.
+               The <noscript> copy serves visitors without JavaScript.
+               This REVERSES the original click-to-load design — see
+               docs/decisions/0001-map-loads-without-click.md. Consequence: Google
+               sets cookies without prior consent, so a consent mechanism is
+               required before this goes live in Norway/EU. -->
+          <div class="map" data-map-src="https://www.google.com/maps?q=Sandvika%2C%20B%C3%A6rum&output=embed">
+            <noscript>
+              <iframe
+                src="https://www.google.com/maps?q=Sandvika%2C%20B%C3%A6rum&output=embed"
+                title="Kart som viser hvor HLT Søm holder til"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen></iframe>
+            </noscript>
           </div>
         </div>
       </div>

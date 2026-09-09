@@ -75,3 +75,48 @@ test('focus is trapped inside the open overlay', async ({ page }) => {
   );
   expect(inside).toBe(true);
 });
+
+test('desktop shows a dropdown panel, not a full-screen takeover', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop presentation only');
+  await page.goto('/');
+  await page.locator('.site-nav__burger').click();
+
+  const vp = page.viewportSize();
+  const panel = await page.locator('#meny').boundingBox();
+
+  // A panel, not a takeover: comfortably narrower and shorter than the viewport
+  expect(panel.width).toBeLessThan(vp.width * 0.5);
+  expect(panel.height).toBeLessThan(vp.height * 0.6);
+  // anchored under the burger, top-right
+  expect(panel.x + panel.width).toBeGreaterThan(vp.width * 0.6);
+  expect(panel.y).toBeLessThan(vp.height * 0.3);
+});
+
+test('desktop does not lock page scrolling while the menu is open', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop presentation only');
+  await page.goto('/');
+  await page.locator('.site-nav__burger').click();
+  await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+});
+
+test('mobile keeps the full-screen takeover', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'mobile presentation only');
+  await page.goto('/');
+  await page.locator('.site-nav__burger').click();
+
+  const vp = page.viewportSize();
+  const panel = await page.locator('#meny').boundingBox();
+  expect(panel.width).toBeGreaterThanOrEqual(vp.width - 1);
+  expect(panel.height).toBeGreaterThanOrEqual(vp.height - 1);
+  await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
+});
+
+test('clicking outside the dropdown closes it', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop presentation only');
+  await page.goto('/');
+  await page.locator('.site-nav__burger').click();
+  await expect(page.locator('#meny')).toBeVisible();
+  // click far from the panel, on the page itself
+  await page.mouse.click(120, 600);
+  await expect(page.locator('#meny')).toBeHidden();
+});

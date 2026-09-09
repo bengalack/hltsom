@@ -12,18 +12,25 @@ test('CLAUDE.md exists and points at the spec and the ADR folder', () => {
   expect(md).toContain('docs/decisions/');
 });
 
-test('CLAUDE.md states the six load-bearing constraints', () => {
+test('CLAUDE.md states the load-bearing constraints', () => {
   const md = read('CLAUDE.md').toLowerCase();
   for (const needle of [
     'no build step',
     'no visible header',
     'norwegian',
-    'before consent',
+    'consent mechanism',   // the map's compliance gap must stay visible
     'relative',
     'google fonts',
   ]) {
-    expect(md).toContain(needle);
+    expect(md, `CLAUDE.md should mention "${needle}"`).toContain(needle);
   }
+});
+
+test('CLAUDE.md points at the ADR that reversed the map decision', () => {
+  // A future agent reading only CLAUDE.md must not be told the old, wrong rule.
+  const md = read('CLAUDE.md');
+  expect(md).toContain('0001-map-loads-without-click.md');
+  expect(md.toLowerCase()).not.toContain('must not enter the dom until');
 });
 
 test('supporting docs exist', () => {

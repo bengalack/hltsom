@@ -36,7 +36,7 @@ test('design tokens are defined on :root', async ({ page }) => {
       interval: s.getPropertyValue('--carousel-interval').trim(),
     };
   });
-  expect(tokens.ink).toBe('#14110f');
-  expect(tokens.paper).toBe('#fdfcfa');
+  expect(tokens.ink).toBe('#171310');
+  expect(tokens.paper).toBe('#faf7f2');
   expect(tokens.interval).toBe('5s');
 });
