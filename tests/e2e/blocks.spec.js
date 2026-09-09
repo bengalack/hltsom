@@ -76,3 +76,23 @@ test('block images are square sources, matching the circular crop', async ({ pag
     expect(d.w, `${sel} is not a square source`).toBe(d.h);
   }
 });
+
+test('overscroll beyond either end of the page shows ink, not paper', async ({ page }) => {
+  /* A phone rubber-bands past the top and bottom of the document and reveals
+     the canvas behind it. The canvas takes its colour from the root element,
+     and an unset root falls back to white — which showed as an empty white
+     block below the footer on mobile, and never on desktop because desktops do
+     not overscroll.
+
+     Both ends of this page are dark, so the canvas must be ink. */
+  await page.goto('/');
+  const c = await page.evaluate(() => ({
+    root: getComputedStyle(document.documentElement).backgroundColor,
+    body: getComputedStyle(document.body).backgroundColor,
+    ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(),
+  }));
+  expect(c.root, 'the canvas behind the page must be ink, or overscroll flashes white')
+    .toBe('rgb(23, 19, 16)');
+  // the page itself still reads as paper
+  expect(c.body).toBe('rgb(250, 247, 242)');
+});

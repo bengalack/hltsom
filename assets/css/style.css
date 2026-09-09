@@ -63,7 +63,23 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+
+  /* The canvas BEHIND the document takes its colour from the root element, and
+     a phone shows it whenever you rubber-band past either end — which a desktop
+     never does, so this only ever appeared on mobile as an empty white band
+     below the footer.
+
+     Ink rather than paper because both ends of this page are dark: the splash
+     at the top and the footer at the bottom. Overscroll now reads as the page
+     stretching rather than as a blank block appearing.
+
+     Note this must be on html, not body: once html carries a background, body's
+     own background stops propagating to the canvas and paints only its own box,
+     which is exactly what we want here. Do not "tidy" it onto body. */
+  background: var(--ink);
+}
 
 body {
   margin: 0;

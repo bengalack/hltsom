@@ -284,6 +284,16 @@ link underlines, the service-list rules and the dropdown's top border.
 If the photography is ever replaced with materially different colours, re-derive these values;
 `docs/image-spec.md` documents the method.
 
+**The canvas behind the document is `--ink`, set on `html`.** A phone rubber-bands past both
+ends of the page and reveals the canvas; a desktop never does, so this only ever showed on
+mobile — as an empty white band below the footer. The canvas takes its colour from the root
+element, and an unset root falls back to white. Both ends of this page are dark (splash, footer),
+so ink makes overscroll read as the page stretching rather than as a blank block appearing.
+
+It has to be on `html`, not `body`: once the root carries a background, `body`'s background stops
+propagating to the canvas and paints only its own box — which is precisely the behaviour needed
+here. Moving it to `body` would look like a tidy-up and would bring the white band back.
+
 **Why the scrim has a dark top band.** The fixed logo and burger use
 `mix-blend-mode: difference`, which resolves cleanly against black and white blocks but washes
 out over a mid-tone photograph — difference is at its weakest when the backdrop sits near 50%
