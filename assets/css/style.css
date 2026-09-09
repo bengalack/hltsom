@@ -298,3 +298,42 @@ html { scroll-behavior: smooth; }
 .site-footer p { margin: 0; line-height: 2; }
 .site-footer a { text-decoration: none; border-bottom: 1px solid rgba(253, 252, 250, .35); }
 .site-footer span { padding: 0 var(--space-2); opacity: .4; }
+
+/* ---------- parallax ----------
+   Outgoing block travels at half scroll speed; the incoming block moves
+   normally, so it appears to slide over the one leaving. Runs on the
+   compositor via scroll-driven animations — no scroll listener, no jank on
+   mid-range phones. Browsers without support simply scroll normally, which is
+   a complete page. */
+@supports (animation-timeline: view()) {
+  @keyframes parallax-exit {
+    /* only the exit half of the range is animated; entry stays at 1x */
+    from { transform: translateY(0); }
+    to   { transform: translateY(calc(-50% * var(--parallax-factor))); }
+  }
+
+  @media (min-width: 800px) {
+    #tjenester, #kontakt, #om {
+      animation: parallax-exit linear both;
+      animation-timeline: view();
+      animation-range: exit-crossing 0% exit 100%;
+      will-change: transform;
+    }
+  }
+}
+
+/* ---------- reduced motion ----------
+   A calm page, not a broken one. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-name: none !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .splash__slide { transition: none; }
+}
