@@ -77,3 +77,62 @@ a { color: inherit; }
 .block--dark  { background: var(--ink);   color: var(--paper); }
 
 :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+/* ---------- block 1: splash ---------- */
+.splash {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.splash__slides { position: absolute; inset: 0; }
+
+.splash__slide {
+  position: absolute; inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity var(--crossfade) ease-in-out;
+}
+.splash__slide.is-active { opacity: 1; }
+
+.splash__scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(var(--scrim-top), var(--scrim-bottom));
+}
+
+.splash__content {
+  position: relative;
+  text-align: center;
+  padding: 0 var(--space-6) var(--space-16);
+  color: #fff;
+}
+
+.splash__mark {
+  font-size: clamp(76px, 22vw, 190px);
+  letter-spacing: .005em;
+  margin: 0;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, .35);
+}
+
+.splash__tagline {
+  margin: var(--space-6) 0 0;
+  font-weight: 200;
+  font-size: clamp(11px, 2.8vw, 14px);
+  letter-spacing: .19em;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, .45);
+}
+
+.splash__cue {
+  position: absolute;
+  bottom: var(--space-8);
+  left: 50%;
+  width: 1px; height: 30px;
+  transform: translateX(-50%);
+  background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.85));
+}

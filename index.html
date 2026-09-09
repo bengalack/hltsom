@@ -9,8 +9,17 @@
 </head>
 <body>
   <main>
-    <section id="splash">
-      <h1>søm</h1>
+    <section id="splash" class="splash">
+      <div class="splash__slides" aria-hidden="true">
+        <div class="splash__slide is-active" style="background-image:url('assets/img/splash-1.svg')"></div>
+        <div class="splash__slide" style="background-image:url('assets/img/splash-2.svg')"></div>
+      </div>
+      <div class="splash__scrim" aria-hidden="true"></div>
+      <div class="splash__content">
+        <h1 class="splash__mark">søm</h1>
+        <p class="splash__tagline">Godt håndverk, lokalt i Bærum</p>
+      </div>
+      <span class="splash__cue" aria-hidden="true"></span>
     </section>
     <section id="tjenester" class="block block--light">
       <h2>Tjenester</h2>

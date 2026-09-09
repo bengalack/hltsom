@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="g1" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#2c2620"/>
+      <stop offset="100%" stop-color="#100d0a"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#g1)"/>
+  <text x="600" y="770" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#6b6055">PLASSHOLDER — splash 1</text>
+</svg>
