@@ -247,3 +247,40 @@ html { scroll-behavior: smooth; }
   border-bottom: 1px solid rgba(20, 17, 15, .12);
 }
 .block--dark .service-list li { border-bottom-color: rgba(253, 252, 250, .18); }
+
+/* ---------- block 3: contact ---------- */
+/* Mobile: text FIRST, map second — the deliberate exception to the image-first
+   rule (spec 3.6). The media pane here is a map, not a photo; putting it first
+   would bury the phone number behind a grey placeholder box.
+   Do not "fix" this into consistency with blocks 2 and 4. */
+.split--reverse .split__body  { order: 1; }
+.split--reverse .split__media { order: 2; }
+
+@media (min-width: 800px) {
+  /* Desktop: text left, map right — the inverse of blocks 2 and 4 */
+  .split--reverse .split__body  { order: 0; }
+  .split--reverse .split__media { order: 1; }
+}
+
+.contact-line { margin: 0 0 var(--space-6); }
+.contact-line a { text-decoration: none; border-bottom: 1px solid rgba(253, 252, 250, .35); }
+.contact-line a:hover { border-bottom-color: currentColor; }
+
+.map { aspect-ratio: 4 / 3; background: rgba(253, 252, 250, .06); }
+
+.map__load {
+  width: 100%; height: 100%;
+  display: grid; place-content: center; gap: var(--space-3);
+  padding: var(--space-8);
+  background: none;
+  border: 1px solid rgba(253, 252, 250, .28);
+  color: var(--paper);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.map__load:hover { background: rgba(253, 252, 250, .06); }
+.map__load-title { font-size: 18px; letter-spacing: .1em; text-transform: uppercase; font-weight: 300; }
+.map__load-note { font-size: 13px; opacity: .7; max-width: 34ch; margin: 0 auto; }
+
+.map iframe { width: 100%; height: 100%; border: 0; }

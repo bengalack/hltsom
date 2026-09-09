@@ -86,3 +86,24 @@ function initNav() {
 }
 
 initNav();
+
+/* ---------- click-to-load map ----------
+   The iframe must NOT exist until the visitor asks for it. Creating it on load
+   would let Google set cookies without consent, which is a legal problem, not a
+   performance one. Do not "optimise" this by preloading. */
+function initMap() {
+  const button = document.querySelector('.map__load');
+  if (!button) return;
+
+  button.addEventListener('click', () => {
+    const iframe = document.createElement('iframe');
+    iframe.src = button.dataset.mapSrc;
+    iframe.title = 'Kart som viser hvor HLT Søm holder til';
+    iframe.loading = 'lazy';
+    iframe.referrerPolicy = 'no-referrer-when-downgrade';
+    iframe.allowFullscreen = true;
+    button.replaceWith(iframe);
+  });
+}
+
+initMap();
