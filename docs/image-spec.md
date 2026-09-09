@@ -15,6 +15,22 @@ the logo are still marked SVG placeholders.
 Found via [Openverse](https://openverse.org). CC0 means no attribution is required and
 commercial use is permitted; the table exists so provenance is never in doubt.
 
+### The map preview is different — it *does* require attribution
+
+`map-preview.webp` is stitched from OpenStreetMap tiles and is licensed **ODbL**, not CC0.
+**The "Kartdata © OpenStreetMap-bidragsytere" line under the map must stay visible.** Removing
+it is a licence violation.
+
+Regenerate it with `tests/_mkmap.mjs` once the real street address is known — it currently
+centres on Sandvika generally. That script is a one-off utility, not part of the site:
+
+```bash
+cd tests && node _mkmap.mjs ../assets/img <lat> <lon> 14
+```
+
+Google's own map imagery cannot be used for this preview: their terms prohibit caching or
+redistributing it. That is why the preview is OSM while the interactive map is Google.
+
 They were downloaded as JPEG and re-encoded to **WebP at quality 0.72**, which cut the set from
 1.2MB to 166KB — the difference between a Lighthouse performance score of 82 and 97.
 

@@ -39,7 +39,7 @@ application: there is no booking, no cart, no account, no form.
 | D3 | Hosted on GitHub Pages, eventually at `hltsom.no` | Free, HTTPS included, deploy is `git push` |
 | D4 | Four full-height blocks + slim footer, no visible header | Client requirement; also the cleanest expression of the minimal brief |
 | D5 | Contact = phone, email, address; no contact form | No backend, no spam handling, no GDPR data processing. Phone is the natural channel for this business |
-| D6 | Embedded Google Map, loading automatically but deferred until its block nears the viewport | Owner requires no click. **Reversed by [ADR 0001](../../decisions/0001-map-loads-without-click.md)** — the original click-to-load design is gone, and with it the no-consent-banner property |
+| D6 | Static OpenStreetMap preview, upgrading to Google's interactive map on click | Settled by [ADR 0002](../../decisions/0002-static-map-preview.md) after [ADR 0001](../../decisions/0001-map-loads-without-click.md). Seeing the location is free; only interactivity costs a click, and that click is the consent action. No cookie banner needed |
 | D7 | Cloudflare Web Analytics | Cookieless and free. No consent banner, no recurring bill that can lapse |
 | D8 | Self-hosted fonts, subset to Latin + æøå | Google Fonts CDN sends visitor IPs to Google (a GDPR problem in the EU) and costs an extra connection |
 | D9 | Wordmark is lowercase *søm* in Cormorant Infant Italic — **provisional** | Chosen from a live comparison; see [§6.1](#61-typography) for what must be re-checked |
@@ -102,10 +102,15 @@ Right column: Google Map, click-to-load.
 The map replaces what would otherwise be a photo, so the block keeps the same two-column
 rhythm as blocks 2 and 4 without introducing a fifth visual element.
 
-**The map loads without any interaction**, deferred by an `IntersectionObserver` until the
-block nears the viewport. `loading="lazy"` alone was measured and does not defer an iframe on a
-fast connection — Chromium fetched Google at ~60ms. A `<noscript>` fallback carries the iframe
-for visitors without JavaScript. See [ADR 0001](../../decisions/0001-map-loads-without-click.md).
+**The map is a static OpenStreetMap image that upgrades to Google's interactive embed on
+click** ([ADR 0002](../../decisions/0002-static-map-preview.md)). The visitor sees where the
+workshop is with no interaction and no third-party request; only panning, zooming and
+directions require the click, and that click is the consent action.
+
+The element is an `<a>`, not a `<button>`, so without JavaScript it opens Google Maps in a new
+tab. **The OpenStreetMap attribution beneath the map is required by the ODbL licence and must
+stay visible.** The preview centres on Sandvika generally and must be regenerated once the real
+street address is known.
 
 ### 3.4 Block 4 — Om meg
 
@@ -411,20 +416,17 @@ clickjacking protection is unavailable. For a static brochure page with no login
 no state, the residual risk is negligible. It is recorded here rather than glossed over,
 because moving off Pages later is the only real fix.
 
-**Privacy — changed by [ADR 0001](../../decisions/0001-map-loads-without-click.md).**
+**Privacy.** No cookies are set on load. Analytics is cookieless. The map preview is an image
+served from this origin, so nothing reaches Google until the visitor clicks it — and that click
+is the consent action ([ADR 0002](../../decisions/0002-static-map-preview.md)).
 
-Analytics remains cookieless. **The map, however, now loads without any consent action, so
-Google sets cookies as soon as the contact block nears the viewport.** Under the Norwegian
-implementation of the EU ePrivacy rules, storing or accessing information on a visitor's device
-for non-essential purposes requires consent, and a Maps embed does exactly that.
+**No cookie consent banner is required as long as this holds.** Adding any third party that
+sets cookies without a consent action changes that conclusion and requires an ADR.
 
-**Consequence: this site requires a cookie consent mechanism before it goes live.** It does not
-have one. This is tracked in §13 as an open item and is a launch blocker in its own right,
-separate from the placeholder content.
-
-Deferring the map until the visitor scrolls to the contact block reduces how many visitors are
-affected — someone who never reaches that block sets no cookies — but it is a mitigation, not
-compliance. The only way to restore the previous clean position is to return to click-to-load.
+This position survived a reversal and a re-reversal: [ADR 0001](../../decisions/0001-map-loads-without-click.md)
+briefly removed the click and created a compliance gap; ADR 0002 closed it by making the
+preview a real map instead of an empty box, which removed the reason the click was objectionable
+in the first place.
 
 ---
 
@@ -435,8 +437,9 @@ compliance. The only way to restore the previous clean position is to return to 
 Automated coverage exists for the regressions that manual checking misses on the fifth visit —
 above all the privacy guarantee, which is a legal obligation rather than a preference:
 
-- **The map does not load at the top of the page, and does load once the contact block is
-  reached** — this is what proves the IntersectionObserver deferral still works (ADR 0001)
+- **No cookie and no Google request before the map preview is clicked**; the interactive
+  iframe appears only after, and the visitor is told what the click will do
+- The OpenStreetMap attribution is present and visible (ODbL requirement)
 - Burger overlay: opens, traps focus, closes on Escape, restores focus, `aria-expanded` correct
 - Carousel advances, and holds still under `prefers-reduced-motion`
 - Parallax and smooth scroll disabled under `prefers-reduced-motion`
@@ -504,7 +507,7 @@ reasoning:
 
 | Item | Owner | Notes |
 |---|---|---|
-| **Cookie consent mechanism** | Both | **Launch blocker.** Required by ADR 0001 — the map sets Google cookies without consent |
+| Regenerate the map preview | Both | Once the real street address is known — it currently centres on Sandvika generally (ADR 0002) |
 | Photography (2 block images, and real carousel shots) | Owner | Carousel currently uses CC0 stand-ins at 1024px; final needs her own work at 2400px. See §8 |
 | Logo file (~100×100) | Owner | Placeholder until supplied |
 | Real content: services, about text, opening hours | Owner | Placeholders ship in Norwegian |
@@ -521,7 +524,7 @@ reasoning:
 Currently the site is served at `https://bengalack.github.io/hltsom/`. When `hltsom.no` is
 registered:
 
-0. **Add the cookie consent mechanism** (ADR 0001). Then **replace every placeholder** — real org.nr, phone, email, address, opening hours,
+0. **Replace every placeholder** — real org.nr, phone, email, address, opening hours,
    services, about text and photography. Then remove the `noindex` tag (§9.1) and uncomment the
    `Sitemap:` line in `robots.txt`. `tests/e2e/prelaunch.spec.js` will fail until the tag and
    the placeholders agree, in either direction.

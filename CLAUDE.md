@@ -17,12 +17,13 @@ spec records why.
    `package.json` — that is developer tooling, never deployed, and deletable.
 2. **No visible header.** The floating logo and burger *are* the navigation, on purpose.
 3. **Norwegian bokmål only.** No English, no language switcher.
-4. **The map loads automatically, but must stay deferred.** It is inserted by an
-   IntersectionObserver as the contact block nears the viewport — NOT on page load, and NOT on
-   a click. `loading="lazy"` alone was measured and does not defer it (Chromium fetched Google
-   at ~60ms). See ADR `docs/decisions/0001-map-loads-without-click.md`.
-   **Consequence: Google sets cookies without consent, so this site needs a consent mechanism
-   before launch.** That is an open item, not a solved problem.
+4. **No cookies before consent.** The contact block shows a static OpenStreetMap image served
+   from this origin. Nothing reaches Google until the visitor clicks it, and that click is the
+   consent action — which is why the site needs no cookie banner. Do NOT load the Google iframe
+   on page load or on scroll; that would be a legal problem, not a performance one. See
+   `docs/decisions/0002-static-map-preview.md` (which supersedes 0001).
+   **The OpenStreetMap attribution under the map is required by the ODbL licence — do not
+   remove it.**
 5. **Relative asset paths only** (`assets/…`, never `/assets/…`). The site moves from a
    GitHub Pages subpath to an apex domain; root-absolute paths break silently on one of them.
 6. **No Google Fonts CDN.** Fonts are self-hosted in `assets/fonts/`. Loading them from
@@ -57,7 +58,7 @@ spec records why.
 cd tests && npm install && npx playwright install chromium && npx playwright test
 ```
 
-The suite guards the constraints above — map deferral, focus handling, reduced motion,
+The suite guards the constraints above — no cookies before consent, focus handling, reduced motion,
 relative paths, and the absence of a root `package.json`. If one fails, the constraint was
 broken; fix the code, not the test.
 

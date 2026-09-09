@@ -1,51 +1,80 @@
 import { test, expect } from '@playwright/test';
 
-/* The map now loads on its own, deferred by loading="lazy".
-   This REVERSES the original click-to-load design and its no-cookies-before-
-   consent guarantee — see docs/decisions/0001-map-loads-without-click.md.
-   These tests were rewritten deliberately as part of that decision. They are
-   NOT a weakening of the old guarantee by accident.
+/* The contact block ships a static OpenStreetMap image and upgrades to Google's
+   interactive embed on click. That click is the consent action, so no cookie
+   banner is needed. See docs/decisions/0002-static-map-preview.md.
 
-   The consequence is recorded honestly below: cookies ARE set without prior
-   consent, which is why the site needs a consent mechanism before launch. */
+   The no-cookies-before-consent assertions below are a LEGAL guarantee, not a
+   performance preference. Do not weaken them. If one fails, the page started
+   loading Google without asking. */
 
-test('the map appears automatically, with no click', async ({ page }) => {
-  await page.goto('/');
-  await page.locator('#kontakt').scrollIntoViewIfNeeded();
-  const frame = page.locator('#kontakt iframe');
-  await expect(frame).toHaveCount(1, { timeout: 5000 });
-  await expect(frame).toHaveAttribute('src', /google\.com\/maps/);
-});
-
-test('the map is genuinely deferred until the contact block is approached', async ({ page }) => {
-  // Measured: loading="lazy" alone did NOT defer the iframe here — Chromium
-  // requested Google at ~60ms, before the load event. The deferral comes from
-  // an IntersectionObserver in main.js. This test is what proves it still works.
+test('no Google request and no cookies before the visitor asks', async ({ page, context }) => {
   const googleRequests = [];
   page.on('request', (r) => {
-    if (/google\.com|gstatic\.com/.test(r.url())) googleRequests.push(r.url());
+    if (/google\.com|gstatic\.com|googleapis\.com/.test(r.url())) googleRequests.push(r.url());
   });
 
   await page.goto('/');
-  await page.waitForLoadState('load');
-  await page.waitForTimeout(1200);
-  expect(googleRequests, 'map must not load while the visitor is at the top of the page').toEqual([]);
-
   await page.locator('#kontakt').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(2500);
-  expect(googleRequests.length, 'map must load once the contact block is reached').toBeGreaterThan(0);
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1500);
+
+  expect(googleRequests, 'nothing may reach Google before the click').toEqual([]);
+  expect(await page.locator('#kontakt iframe').count()).toBe(0);
+  expect(await context.cookies()).toEqual([]);
 });
 
-test('visitors without JavaScript still get a map', async ({ page }) => {
-  // The <noscript> fallback means the map never depends on the script existing.
+test('the location is visible without any interaction', async ({ page }) => {
+  // The whole point of the preview: seeing where the workshop is costs nothing.
   await page.goto('/');
-  const html = await page.content();
-  expect(html).toContain('<noscript>');
+  const preview = page.locator('.map__preview');
+  await expect(preview).toHaveAttribute('src', /map-preview\.webp/);
+  const painted = await preview.evaluate((el) => el.complete && el.naturalWidth > 0);
+  expect(painted).toBe(true);
 });
 
-test('no click-to-load button remains', async ({ page }) => {
+test('the preview is served from this origin, not a third party', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.map__load')).toHaveCount(0);
+  const src = await page.locator('.map__preview').getAttribute('src');
+  expect(src.startsWith('assets/')).toBe(true);
+});
+
+test('clicking the preview loads the interactive Google map', async ({ page }) => {
+  await page.goto('/');
+  const link = page.locator('.map__load');
+  await expect(link).toContainText('Åpne interaktivt kart');
+
+  await link.click();
+
+  const frame = page.locator('#kontakt iframe');
+  await expect(frame).toHaveCount(1);
+  await expect(frame).toHaveAttribute('src', /google\.com\/maps/);
+  await expect(link).toHaveCount(0);
+});
+
+test('the visitor is told what the click will do', async ({ page }) => {
+  // Consent means informed consent: the cookie consequence must be stated.
+  await page.goto('/');
+  await expect(page.locator('.map__cta-note')).toContainText('informasjonskapsler');
+});
+
+test('without JavaScript the map is still reachable as a link', async ({ browser }) => {
+  const ctx = await browser.newContext({ javaScriptEnabled: false });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  const href = await page.locator('.map__load').getAttribute('href');
+  expect(href).toMatch(/google\.com\/maps/);
+  await expect(page.locator('.map__preview')).toBeVisible();
+  await ctx.close();
+});
+
+test('the OpenStreetMap attribution is present and visible', async ({ page }) => {
+  // Required by the ODbL licence for the tiles the preview is built from.
+  await page.goto('/');
+  const attribution = page.locator('.map__attribution');
+  await expect(attribution).toBeVisible();
+  await expect(attribution).toContainText('OpenStreetMap');
+  await expect(attribution.locator('a')).toHaveAttribute('href', /openstreetmap\.org\/copyright/);
 });
 
 test('contact details are tappable links', async ({ page }) => {
@@ -55,8 +84,7 @@ test('contact details are tappable links', async ({ page }) => {
 });
 
 test('on mobile the contact details come BEFORE the map', async ({ page }, testInfo) => {
-  // Spec 3.6: block 3 is the deliberate exception to image-first stacking,
-  // because its media pane is a map. Image-first would bury the phone number.
+  // Spec 3.6: block 3 is the deliberate exception to image-first stacking.
   test.skip(testInfo.project.name !== 'mobile', 'mobile stacking only');
   await page.goto('/');
   const body = await page.locator('#kontakt .split__body').boundingBox();

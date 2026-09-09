@@ -1,6 +1,7 @@
 /* HLT Søm — the only JavaScript on this site.
-   Three jobs: the splash carousel, the burger menu, and deferring the map.
-   See docs/decisions/0001-map-loads-without-click.md. */
+   Three jobs: the splash carousel, the burger menu, and upgrading the static
+   map preview to Google's interactive map on click.
+   See docs/decisions/ 0001 and 0002. */
 
 const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -121,42 +122,33 @@ function initNav() {
 initNav();
 
 /* ---------- map ----------
-   The map loads automatically, with no click. But it is deferred until the
-   contact block approaches the viewport.
+   The page ships a static OpenStreetMap image, which sets no cookies. Clicking
+   swaps it for Google's interactive embed — that click is the visitor's consent,
+   so no banner is required.
 
-   Why not just loading="lazy"? Because measured on this page it does nothing:
-   Chromium requested Google at ~60ms, before the load event, on both mobile and
-   desktop. The attribute is a hint, and its distance threshold on a fast
-   connection is effectively "load it now". An IntersectionObserver actually
-   defers, which is what keeps a ~600KB third-party embed from competing with
-   the splash image for bandwidth.
+   The visitor is not asked to click in order to SEE where the workshop is: the
+   static map already shows that. Only interactivity costs a click.
 
-   Visitors without JavaScript get the iframe directly from the <noscript>
-   block in the markup, so the map never depends on this script to exist. */
+   Without JavaScript the element stays an ordinary link and opens Google Maps
+   in a new tab, so the map is never unreachable.
+
+   Do NOT "optimise" this by loading the iframe on page load or on scroll.
+   Doing so lets Google set cookies without consent, which is a legal problem
+   rather than a performance one. See docs/decisions/0002-static-map-preview.md. */
 function initMap() {
-  const holder = document.querySelector('.map[data-map-src]');
-  if (!holder) return;
+  const link = document.querySelector('.map__load[data-map-src]');
+  if (!link) return;
 
-  const insert = () => {
-    if (holder.querySelector('iframe')) return;
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
     const iframe = document.createElement('iframe');
-    iframe.src = holder.dataset.mapSrc;
+    iframe.src = link.dataset.mapSrc;
     iframe.title = 'Kart som viser hvor HLT Søm holder til';
     iframe.loading = 'lazy';
     iframe.referrerPolicy = 'no-referrer-when-downgrade';
     iframe.allowFullscreen = true;
-    holder.appendChild(iframe);
-  };
-
-  if (!('IntersectionObserver' in window)) { insert(); return; }
-
-  const io = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) { insert(); io.disconnect(); return; }
-    }
-  }, { rootMargin: '400px' });
-
-  io.observe(holder);
+    link.replaceWith(iframe);
+  });
 }
 
 initMap();

@@ -21,8 +21,10 @@ test('first carousel image still shows without JavaScript', async ({ page }) => 
   expect(painted).toBe(true);
 });
 
-test('the map still works without JavaScript', async ({ page }) => {
-  // The map is plain markup now, so it no longer depends on script at all.
+test('the map is still reachable without JavaScript', async ({ page }) => {
+  // The static preview is plain markup, and the wrapper is an ordinary link to
+  // Google Maps, so the map never depends on the script existing.
   await page.goto('/');
-  await expect(page.locator('#kontakt iframe')).toHaveCount(1);
+  await expect(page.locator('.map__preview')).toBeVisible();
+  await expect(page.locator('.map__load')).toHaveAttribute('href', /google\.com\/maps/);
 });

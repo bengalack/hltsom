@@ -151,23 +151,30 @@
           </p>
         </div>
         <div class="split__media">
-          <!-- The map loads on its own, with no click. main.js inserts the iframe
-               via IntersectionObserver as this block nears the viewport;
-               loading="lazy" alone was measured and does NOT defer it.
-               The <noscript> copy serves visitors without JavaScript.
-               This REVERSES the original click-to-load design — see
-               docs/decisions/0001-map-loads-without-click.md. Consequence: Google
-               sets cookies without prior consent, so a consent mechanism is
-               required before this goes live in Norway/EU. -->
-          <div class="map" data-map-src="https://www.google.com/maps?q=Sandvika%2C%20B%C3%A6rum&output=embed">
-            <noscript>
-              <iframe
-                src="https://www.google.com/maps?q=Sandvika%2C%20B%C3%A6rum&output=embed"
-                title="Kart som viser hvor HLT Søm holder til"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                allowfullscreen></iframe>
-            </noscript>
+          <!-- The map shows as a static OpenStreetMap image, which sets no
+               cookies and needs no consent. Clicking loads Google's interactive
+               map, which is the visitor's own opt-in. The visitor therefore SEES
+               the location without any interaction; only interactivity costs a
+               click. See docs/decisions/0002-static-map-preview.md.
+               Without JavaScript the link simply opens Google Maps in a new tab.
+               The OpenStreetMap attribution below is required by the ODbL
+               licence and must stay visible. -->
+          <div class="map">
+            <a class="map__load"
+               href="https://www.google.com/maps/search/?api=1&query=Sandvika%2C+B%C3%A6rum"
+               data-map-src="https://www.google.com/maps?q=Sandvika%2C%20B%C3%A6rum&output=embed"
+               target="_blank" rel="noopener">
+              <img class="map__preview" src="assets/img/map-preview.webp"
+                   alt="Kart som viser Sandvika i Bærum"
+                   width="1024" height="768" loading="lazy" decoding="async">
+              <span class="map__cta">
+                <span class="map__cta-title">Åpne interaktivt kart</span>
+                <span class="map__cta-note">Kartet lastes fra Google, som setter informasjonskapsler.</span>
+              </span>
+            </a>
+            <p class="map__attribution">
+              Kartdata &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bidragsytere
+            </p>
           </div>
         </div>
       </div>

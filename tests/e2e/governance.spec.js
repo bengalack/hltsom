@@ -18,7 +18,7 @@ test('CLAUDE.md states the load-bearing constraints', () => {
     'no build step',
     'no visible header',
     'norwegian',
-    'consent mechanism',   // the map's compliance gap must stay visible
+    'before consent',      // the map's consent rule must stay visible
     'relative',
     'google fonts',
   ]) {
@@ -26,11 +26,18 @@ test('CLAUDE.md states the load-bearing constraints', () => {
   }
 });
 
-test('CLAUDE.md points at the ADR that reversed the map decision', () => {
-  // A future agent reading only CLAUDE.md must not be told the old, wrong rule.
+test('CLAUDE.md points at the current map ADR, not a superseded rule', () => {
+  // The map decision flipped twice. A future agent reading only CLAUDE.md must
+  // be told the live rule, never one that has since been reversed.
   const md = read('CLAUDE.md');
-  expect(md).toContain('0001-map-loads-without-click.md');
+  expect(md).toContain('0002-static-map-preview.md');
   expect(md.toLowerCase()).not.toContain('must not enter the dom until');
+  expect(md.toLowerCase()).not.toContain('loads automatically, but must stay deferred');
+});
+
+test('CLAUDE.md preserves the OpenStreetMap attribution requirement', () => {
+  // Removing the attribution is a licence violation, not a tidy-up.
+  expect(read('CLAUDE.md')).toContain('ODbL');
 });
 
 test('supporting docs exist', () => {
