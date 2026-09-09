@@ -136,3 +136,76 @@ a { color: inherit; }
   transform: translateX(-50%);
   background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.85));
 }
+
+/* ---------- fixed navigation ---------- */
+.site-nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  /* Must outrank .nav-overlay (30), or the burger becomes unclickable once the
+     menu is open — the first thing anyone tries on a phone. */
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4);
+  pointer-events: none;
+  /* difference blending keeps both marks legible over white AND black blocks
+     with no scroll listener to fall out of sync */
+  mix-blend-mode: difference;
+  color: #fff;
+}
+.site-nav > * { pointer-events: auto; }
+
+.site-nav__logo { display: block; width: 64px; color: #fff; }
+.site-nav__logo img { width: 100%; height: auto; }
+
+.site-nav__burger {
+  background: none;
+  border: 0;
+  padding: var(--space-2);
+  cursor: pointer;
+  color: inherit;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+}
+.site-nav__burger-label {
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.site-nav__bars { display: grid; gap: 5px; }
+.site-nav__bars i { display: block; width: 26px; height: 1px; background: currentColor; }
+
+/* ---------- overlay ---------- */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+}
+.nav-overlay[hidden] { display: none; }
+
+.nav-overlay__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+.nav-overlay__list li + li { margin-top: var(--space-6); }
+.nav-overlay__list a {
+  color: var(--paper);
+  text-decoration: none;
+  font-size: clamp(24px, 7vw, 40px);
+  font-weight: 200;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.nav-overlay__list a:hover { text-decoration: underline; text-underline-offset: 6px; }
+
+body.nav-open { overflow: hidden; }
+
+html { scroll-behavior: smooth; }

@@ -8,6 +8,25 @@
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
+  <nav class="site-nav">
+    <a class="site-nav__logo" href="#splash" aria-label="HLT Søm — til toppen">
+      <img src="assets/img/logo.svg" width="100" height="100" alt="">
+    </a>
+    <button class="site-nav__burger" type="button" aria-expanded="false" aria-controls="meny">
+      <span class="site-nav__burger-label">Meny</span>
+      <span class="site-nav__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
+  </nav>
+
+  <div class="nav-overlay" id="meny" hidden>
+    <ul class="nav-overlay__list">
+      <li><a href="#splash">Hjem</a></li>
+      <li><a href="#tjenester">Tjenester</a></li>
+      <li><a href="#kontakt">Kontakt</a></li>
+      <li><a href="#om">Om meg</a></li>
+    </ul>
+  </div>
+
   <main>
     <section id="splash" class="splash">
       <div class="splash__slides" aria-hidden="true">
