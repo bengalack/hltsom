@@ -26,7 +26,8 @@ Every task's requirements implicitly include this section. Values are copied ver
 - **Motion timings:** carousel hold `5s`, crossfade `1200ms`, parallax factor `0.5`.
 - **`prefers-reduced-motion: reduce` must disable** the carousel, the parallax and smooth scrolling.
 - **Block order:** ① Splash (dark) → ② Tjenester (white) → ③ Kontakt (black) → ④ Om meg (white) → footer (black).
-- **Mobile stacking:** blocks 2–4 stack image-first, text-second, consistently — no alternation on mobile.
+- **Mobile stacking:** blocks 2 and 4 stack image-first, text-second. **Block 3 is the deliberate exception — text first, map second** (spec §3.6): its media pane is a map, and image-first would bury the phone number behind a grey placeholder box.
+- **Stacking order:** `.site-nav` must sit *above* `.nav-overlay`, so the burger stays clickable to dismiss the open menu.
 
 ---
 
@@ -1068,6 +1069,18 @@ test('clicking a link closes the overlay', async ({ page }) => {
   await expect(page.locator('#meny')).toBeHidden();
 });
 
+test('the burger itself closes the open overlay', async ({ page }) => {
+  // Regression guard: if .site-nav sinks below .nav-overlay in the stacking
+  // order, the burger is covered and this click silently hits the overlay.
+  await page.goto('/');
+  const burger = page.locator('.site-nav__burger');
+  await burger.click();
+  await expect(page.locator('#meny')).toBeVisible();
+  await burger.click();
+  await expect(page.locator('#meny')).toBeHidden();
+  await expect(burger).toHaveAttribute('aria-expanded', 'false');
+});
+
 test('focus is trapped inside the open overlay', async ({ page }) => {
   await page.goto('/');
   await page.locator('.site-nav__burger').click();
@@ -1121,7 +1134,9 @@ Append to `assets/css/style.css`:
 .site-nav {
   position: fixed;
   inset: 0 0 auto 0;
-  z-index: 20;
+  /* Must outrank .nav-overlay (30), or the burger becomes unclickable
+     once the menu is open — the first thing anyone tries on a phone. */
+  z-index: 40;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1518,6 +1533,23 @@ test('contact details are tappable links', async ({ page }) => {
   await expect(page.locator('#kontakt a[href^="tel:"]')).toHaveCount(1);
   await expect(page.locator('#kontakt a[href^="mailto:"]')).toHaveCount(1);
 });
+
+test('on mobile the contact details come BEFORE the map', async ({ page }, testInfo) => {
+  // Spec §3.6: block 3 is the deliberate exception to image-first stacking.
+  test.skip(testInfo.project.name !== 'mobile', 'mobile stacking only');
+  await page.goto('/');
+  const body = await page.locator('#kontakt .split__body').boundingBox();
+  const media = await page.locator('#kontakt .split__media').boundingBox();
+  expect(body.y).toBeLessThan(media.y);
+});
+
+test('on desktop the contact details are left of the map', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop layout only');
+  await page.goto('/');
+  const body = await page.locator('#kontakt .split__body').boundingBox();
+  const media = await page.locator('#kontakt .split__media').boundingBox();
+  expect(body.x).toBeLessThan(media.x);
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -1571,8 +1603,15 @@ Append to `assets/css/style.css`:
 
 ```css
 /* ---------- block 3: contact ---------- */
+/* Mobile: text FIRST, map second — the deliberate exception to the
+   image-first rule (spec §3.6). The media pane here is a map, not a photo;
+   putting it first would bury the phone number behind a grey placeholder.
+   Do not "fix" this into consistency with blocks 2 and 4. */
+.split--reverse .split__body  { order: 1; }
+.split--reverse .split__media { order: 2; }
+
 @media (min-width: 800px) {
-  /* text left, map right — the inverse of blocks 2 and 4 */
+  /* Desktop: text left, map right — the inverse of blocks 2 and 4 */
   .split--reverse .split__body  { order: 0; }
   .split--reverse .split__media { order: 1; }
 }

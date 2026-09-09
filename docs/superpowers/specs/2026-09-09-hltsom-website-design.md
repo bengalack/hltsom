@@ -116,12 +116,25 @@ Organisasjonsnummer: xxx xxx xxx | E-post: xxx@yyy.no | Telefon: 00 99 88 77
 
 ### 3.6 Mobile stacking
 
-Blocks 2–4 alternate image-side on desktop. On mobile all blocks stack **image first,
-text second — consistently, in all three blocks.**
+Blocks 2–4 alternate image-side on desktop. On mobile everything stacks:
+
+| Block | Mobile order |
+|---|---|
+| 2 — Tjenester | Image, then text |
+| 4 — Om meg | Image, then text |
+| **3 — Kontakt** | **Text, then map** |
 
 Mirroring the desktop alternation on a phone does not read as rhythm, it reads as
-inconsistency; and in block 3 it would push the contact details — the most important content
-on the page — below the fold.
+inconsistency — hence image-first as the default rule.
+
+**Block 3 is a deliberate exception, and must stay one.** Its media pane holds the map, not a
+photograph. Under the default rule a phone visitor reaching Kontakt would meet an empty grey
+"Vis kart" box with the phone number pushed below it — burying the single most important
+element on the page behind a placeholder. The rule exists to serve the ten-second goal in §1;
+applying it literally here would defeat that goal.
+
+An agent tidying this into consistency would be undoing the point. On mobile the map is
+supporting detail and comes last.
 
 ---
 
