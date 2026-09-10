@@ -62,10 +62,15 @@ test('block images are circular, with a transparent surround', async ({ page }) 
 });
 
 test('block images actually load', async ({ page }) => {
+  // They are loading="lazy", and the mobile blocks are tall enough that the
+  // lower one is far below the fold at rest — so scroll to each before asking.
   await page.goto('/');
   for (const sel of ['#tjenester .split__figure img', '#om .split__figure img']) {
-    const painted = await page.locator(sel).evaluate((el) => el.complete && el.naturalWidth > 0);
-    expect(painted, `${sel} did not load`).toBe(true);
+    const img = page.locator(sel);
+    await img.scrollIntoViewIfNeeded();
+    await expect
+      .poll(async () => img.evaluate((el) => el.complete && el.naturalWidth > 0), { timeout: 5000 })
+      .toBe(true);
   }
 });
 

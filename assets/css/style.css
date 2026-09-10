@@ -31,7 +31,7 @@
      eats it. Raise this and the effect gets stronger automatically, because the
      lag is capped at whatever runway actually exists. Lower it and the effect
      shrinks rather than covering text. */
-  --parallax-runway: 240px;
+  --parallax-runway: 240px;   /* desktop; the mobile value is far larger, below */
 
   --carousel-interval: 5s;
   --crossfade: 1200ms;
@@ -117,6 +117,23 @@ a { color: inherit; }
    being read. */
 .block {
   padding: var(--space-24) var(--space-6) calc(var(--space-24) + var(--parallax-runway));
+}
+
+/* Mobile needs far more runway than desktop, and the reason is arithmetic
+   rather than taste.
+
+   Half speed lasts 2 x KNEE x runway pixels of scrolling, so the share of a
+   block spent at half speed is 1.6 x runway / height. The splash manages 0.73
+   because it is one viewport tall with a runway nearly half its height. A
+   stacked mobile content block is ~1300px tall with only 336px of padding
+   beneath its content, which is 0.41 — the effect is spent in the first 40% and
+   the rest of the block scrolls flat. That is exactly what was reported: about
+   a centimetre of travel and then nothing.
+
+   Desktop does not need this: its blocks are roughly half as tall, because the
+   image and text sit side by side rather than stacked. */
+@media (max-width: 799px) {
+  :root { --parallax-runway: 700px; }
 }
 .block--light { background: var(--paper); color: var(--ink); }
 .block--dark  { background: var(--ink);   color: var(--paper); }

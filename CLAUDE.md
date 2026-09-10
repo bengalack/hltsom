@@ -82,6 +82,10 @@ spec records why.
 - **Half speed lasts exactly 2 x runway pixels of scrolling.** If it should last longer, raise
   `--parallax-runway` — there is no curve that avoids this trade, because the next block arrives
   on a schedule fixed by layout.
+- **Mobile's runway is 700px against desktop's 240px, and that gap is deliberate.** Mobile blocks
+  are twice as tall because the image and text stack, so the same runway would be spent in the
+  first 40% of the block. The large mobile whitespace is what the effect runs on — it is not
+  padding someone forgot to tune down. See spec §5.1 for the measured parity table.
 - **The parallax offset is POSITIVE.** It looks inverted and is not: a block has to lag the
   page to appear slower. A negative value drags it along with the scroll and it leaves *faster*
   than normal — measured at -1.17x, which reads as "the parallax is broken". A test measures

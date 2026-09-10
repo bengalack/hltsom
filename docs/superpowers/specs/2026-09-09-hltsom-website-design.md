@@ -269,6 +269,30 @@ scrolled, so:
 That is the whole trade, and it is why the answer to "keep −0.5 for longer" is more runway rather
 than a different curve.
 
+**What matters perceptually is the share of a block spent at half speed**, `1.6 × R / height`,
+not the absolute distance. A block whose effect is spent in the first 40% reads as "about a
+centimetre of parallax and then nothing", which is precisely how it was reported.
+
+**Mobile therefore needs far more runway than desktop, and it is arithmetic rather than taste.**
+On mobile the image and text stack, so a content block is ~1300px tall against the splash's 839px;
+with the desktop runway it managed 0.41 against the splash's 0.73. Mobile runway is 700px, which
+brings every block to parity:
+
+| Block | height | held at half speed | share |
+|---|---|---|---|
+| Splash | 839px | 625px | 0.74 |
+| Tjenester | 1760px | 1300px | 0.74 |
+| Kontakt | 1557px | 1300px | 0.83 |
+| Om meg | 1563px | 875px | 0.56 (limited by the page ending) |
+
+Desktop keeps 240px because its blocks are roughly half as tall — the image and text sit side by
+side rather than stacked.
+
+The cost is real and was accepted deliberately: on mobile a block carries ~800px of empty space
+below its content, visible when you stop scrolling mid-block. The alternative considered was
+moving the image below the text so it would fall inside the runway — stronger still and free —
+but that changes the mobile reading order in §3.6 and the owner chose the whitespace instead.
+
 **The lag is linear up to a knee, then eases into the runway.** Up to `KNEE × R` (KNEE = 0.8) the
 block travels at exactly the target speed; beyond it the offset approaches `R` exponentially. The
 exponential's slope is 1 where it begins, so it takes over from the linear part with no change in
