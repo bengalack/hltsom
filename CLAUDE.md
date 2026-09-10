@@ -70,22 +70,17 @@ spec records why.
 - **The parallax runs at full strength on all four blocks, and must stay that way.** Freezing
   the last block to hold the footer was tried and reverted by the owner: it removed the effect
   from a quarter of the page. Block 4 drifting from the footer is an accepted cost (spec §5.2).
-- **The big bottom padding on `.block` is runway for the parallax, not decoration.** The lag
-  pushes content down into it and the arriving block eats it; without it, a lagging block buries
-  the next screen of text — the services list was unreadable on a real phone. `--parallax-runway`
-  is the knob: raise it and the effect strengthens, lower it and the effect weakens. Never trim
-  the padding as "unused whitespace". See spec §5.1.
-- **The lag is linear to a knee, then eases into the runway.** Two simpler shapes were tried and
-  both were reported as defects: `Math.min` snaps from half speed to normal in one frame (speed
-  step 0.28), and easing from the first pixel never holds the target speed at all. Tests bound
-  the step below 0.1 AND require 300px+ held at target, so both failures fail the suite.
-- **Half speed lasts exactly 2 x runway pixels of scrolling.** If it should last longer, raise
-  `--parallax-runway` — there is no curve that avoids this trade, because the next block arrives
-  on a schedule fixed by layout.
-- **Mobile's runway is 700px against desktop's 240px, and that gap is deliberate.** Mobile blocks
-  are twice as tall because the image and text stack, so the same runway would be spent in the
-  first 40% of the block. The large mobile whitespace is what the effect runs on — it is not
-  padding someone forgot to tune down. See spec §5.1 for the measured parity table.
+- **Blocks overlapping and covering each other's text is the EFFECT, not a bug.** Do not add a
+  cap, an ease, or an exclusion to prevent it — three such attempts were made and all three were
+  rejected for gutting the parallax. Blocks run at exactly -0.5x for their whole exit.
+- **The bottom padding on `.block` is runway, not decoration.** It controls WHEN the arriving
+  block reaches the previous one's text: covering begins 2 x runway pixels into a block. Too
+  early and the text is unreadable (the original complaint, at ~15%); partway through is fine.
+  `--parallax-runway` is the knob, and it changes the timing, never the speed. See spec §5.1.
+- **The lag is linear and uncapped.** `Math.min` and easing curves were both tried and both were
+  reported as defects — a clamp snaps from half speed to normal in one frame (speed step 0.28),
+  and easing never holds the target at all. Tests require >90% of each block held at target and
+  bound the speed step below 0.1.
 - **The parallax offset is POSITIVE.** It looks inverted and is not: a block has to lag the
   page to appear slower. A negative value drags it along with the scroll and it leaves *faster*
   than normal — measured at -1.17x, which reads as "the parallax is broken". A test measures

@@ -243,94 +243,43 @@ while looking entirely plausible in code review. This trap survives the move to 
 height of scrolling, so displacing it by `height × factor` leaves it at `(1 − factor)` of scroll
 speed: `--parallax-factor: .5` means literally half speed.
 
-### 5.1 Runway: how the effect stays out of the way of the text
+### 5.1 Runway: when the arriving block reaches the text
 
-A lagging block slides down over whatever follows it, and **the next block arrives on schedule
-regardless** — its position comes from layout, not from the lag. So the lag pushes a block's
-content down into the space the arriving block is about to occupy, and the amount of text hidden
-is roughly the size of the lag.
+**Overlap is the effect, not a defect.** A block that never covers the one before it is not a
+parallax. Blocks travel at exactly −0.5× for their entire exit, with no cap and no easing, and
+they *will* eventually slide far enough that the arriving block covers their text.
 
-This was reported from a real phone: the services list half-buried under the arriving contact
-block, with the visitor unable to read what was on offer.
+**What matters is when.** The original complaint was that the services list disappeared while it
+was still being read — covering began roughly 15% into the block. Covering partway through, once
+the visitor is well past that content, is fine and was explicitly accepted by the owner.
 
-**The fix is runway, not a smaller effect.** Each content block carries `--parallax-runway`
-(240px) of empty space below its content, on top of its normal padding. The lag moves into that
-space and the arriving block eats it, so nothing readable is ever covered. The lag is then capped
-at whatever runway actually exists.
+**`--parallax-runway` (240px) buys the delay.** It is empty space below each block's content. The
+lag grows at half the scroll rate, so covering begins once the lag exceeds the runway — that is,
+**2 × runway pixels into the block**. It is not governed by slowing the effect down, and every
+attempt to govern it that way was rejected:
 
-**How long half speed can last, exactly.** The next block's position comes from layout, so it
-arrives on a fixed schedule. A lag of `d` pixels puts it `d` pixels closer to this block's text,
-and the text is covered once `d` exceeds the runway `R`. At half speed `d` grows by 0.5 per pixel
-scrolled, so:
+- **Excluding the last block** to hold the footer still — cost the effect on a quarter of the page.
+- **Clamping the lag** to the runway — reduced blocks 2 and 3 to a 92px twitch, and snapped from
+  half speed to normal in a single frame (speed step 0.280).
+- **Easing out of the target speed** at a knee — never held −0.5 constant; the speed drifted.
+- **Enlarging the mobile runway to 700px** to buy more half-speed travel under the cap — worked,
+  but cost ~800px of blank space below every mobile block. Unnecessary once the cap was removed.
 
-> **Half speed can be held for exactly `2R` pixels of scrolling. Every pixel of
-> `--parallax-runway` buys two pixels of half-speed travel.**
+Measured with the cap gone:
 
-That is the whole trade, and it is why the answer to "keep −0.5 for longer" is more runway rather
-than a different curve.
+| Block | at −0.5× for | covering starts at |
+|---|---|---|
+| Splash (mobile) | 98% of the block | 95% |
+| Tjenester (mobile) | 100% | 54% |
+| Kontakt (mobile) | 98% | 64% |
+| Splash (desktop) | 100% | 83% |
+| Tjenester (desktop) | 97% | 80% |
+| Kontakt (desktop) | 100% | 82% |
 
-**What matters perceptually is the share of a block spent at half speed**, `1.6 × R / height`,
-not the absolute distance. A block whose effect is spent in the first 40% reads as "about a
-centimetre of parallax and then nothing", which is precisely how it was reported.
-
-**Mobile therefore needs far more runway than desktop, and it is arithmetic rather than taste.**
-On mobile the image and text stack, so a content block is ~1300px tall against the splash's 839px;
-with the desktop runway it managed 0.41 against the splash's 0.73. Mobile runway is 700px, which
-brings every block to parity:
-
-| Block | height | held at half speed | share |
-|---|---|---|---|
-| Splash | 839px | 625px | 0.74 |
-| Tjenester | 1760px | 1300px | 0.74 |
-| Kontakt | 1557px | 1300px | 0.83 |
-| Om meg | 1563px | 875px | 0.56 (limited by the page ending) |
-
-Desktop keeps 240px because its blocks are roughly half as tall — the image and text sit side by
-side rather than stacked.
-
-The cost is real and was accepted deliberately: on mobile a block carries ~800px of empty space
-below its content, visible when you stop scrolling mid-block. The alternative considered was
-moving the image below the text so it would fall inside the runway — stronger still and free —
-but that changes the mobile reading order in §3.6 and the owner chose the whitespace instead.
-
-**The lag is linear up to a knee, then eases into the runway.** Up to `KNEE × R` (KNEE = 0.8) the
-block travels at exactly the target speed; beyond it the offset approaches `R` exponentially. The
-exponential's slope is 1 where it begins, so it takes over from the linear part with no change in
-speed — the transition is invisible.
-
-Two earlier versions were wrong in opposite directions and both were reported:
-
-- A **hard clamp** (`Math.min`) held half speed and then returned to 1× in a single frame. The
-  jolt is obvious: measured speed change between samples **0.280**.
-- **Easing from the very first pixel** never held the target speed at all; the speed drifted
-  continuously from −0.5 and the effect never felt constant.
-
-Measured now: exactly **−0.50 for 550px of scrolling**, then a smooth tail to −1.00, with a
-biggest step of **0.079**. Tests bound the step below 0.1 and require at least 300px held at the
-target speed, so neither failure mode can return.
-
-Because the effect eases at the end, the *average* speed over a whole exit is not a meaningful
-number. The tests measure the **opening** speed and the **distance held** at target.
-
-**The runway is measured, not assumed.** `measureRunway()` in `main.js` takes the distance from a
-block's deepest content to its own bottom edge, once at load and on resize — never per frame, and
-with the transform removed so the measurement cannot feed on itself. A fixed number would be
-right at one viewport and wrong at the next: the splash's runway is its centring, which scales
-with its own height. Decorative imagery (`[aria-hidden="true"]`) is excluded — the carousel
-slides fill the splash, and counting them would report no runway at all.
-
-Measured: every block opens at −0.51× and eases to between −0.81× and −0.93× by the end of its
-exit, with 240–285px of lag and **zero content covered** on a Pixel 7, a 900×700 window and a
-1440×900 window.
-
-Each block publishes the runway it measured as `data-parallax-runway`, so the value is visible in
-devtools when tuning and the tests can predict the offset instead of re-deriving it.
-
-**Which knob to turn.** Raising `--parallax-runway` strengthens the effect, because the cap
-follows it. Lowering it weakens the effect rather than covering text. Both are safe. Removing the
-cap is not: an earlier version ran uncapped and buried 163–434px of text. A separate earlier
-attempt capped the lag *without* adding runway, which left blocks 2 and 3 lagging 92px and reading
-as no parallax at all — that is why the runway exists.
+Tests assert the target speed is held for >90% of each block, that the speed never steps by more
+than 0.1 between samples, and that covering never begins before 40% into a block. Raising
+`--parallax-runway` delays covering further at the price of more whitespace; lowering it does the
+reverse. Neither changes the speed.
 
 ### 5.2 Known trade-off — the last block drifts from the footer
 

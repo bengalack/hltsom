@@ -296,20 +296,8 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
       const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
       const actual = m ? Number(m[1].split(',')[5]) : 0;
       const p = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
-      const wanted = p * el.offsetHeight * travel;
-      // the block publishes the runway it measured; the offset is linear up to
-      // the knee and then approaches the runway exponentially
-      const runway = parseFloat(el.dataset.parallaxRunway);
-      const KNEE = 0.8;
-      let expected;
-      if (!Number.isFinite(runway)) {
-        expected = wanted;
-      } else {
-        const knee = runway * KNEE;
-        expected = wanted <= knee
-          ? wanted
-          : knee + (runway - knee) * (1 - Math.exp(-(wanted - knee) / (runway - knee)));
-      }
+      // linear and uncapped: the offset is simply progress x height x factor
+      const expected = p * el.offsetHeight * travel;
       return { sel, actual, expected };
     });
   });
@@ -337,61 +325,61 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
   }
 });
 
-test('an arriving block never covers text that is still on screen', async ({ page }) => {
-  /* Reported from a real phone: the services list was half-buried under the
-     arriving contact block, so a visitor could not read what was on offer.
+test('an arriving block does not reach the earlier text until midway', async ({ page }) => {
+  /* Covering IS allowed, and the effect depends on it: a block that never
+     overlaps the next one is not a parallax. What matters is WHEN. The original
+     complaint was that the services list disappeared while it was still being
+     read — covering began about 15% into the block.
 
-     The cause is geometric. The lag pushes a block's content DOWN, while the
-     next block arrives on schedule regardless, so the amount of text hidden is
-     roughly the size of the lag. The fix is runway — empty space below each
-     block's content (--parallax-runway) that the lag can move into and the
-     arriving block can eat — with the lag capped at whatever runway exists.
-
-     Raising --parallax-runway strengthens the effect. Lowering it weakens the
-     effect rather than covering text. Both are safe; removing the cap is not. */
+     The runway (--parallax-runway, the empty space below each block's content)
+     is what buys that delay: covering begins once the lag exceeds it, and the
+     lag grows at half the scroll rate, so covering starts 2 x runway pixels
+     into the block. It is NOT governed by slowing the effect down. */
   await page.goto('/');
-  const worst = await page.evaluate(async () => {
+  const starts = await page.evaluate(async () => {
     document.documentElement.style.scrollBehavior = 'auto';
-    const pairs = [['#splash', '#tjenester'], ['#tjenester', '#kontakt'], ['#kontakt', '#om']];
-    let worst = { overlap: 0, block: null, y: 0, text: '' };
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    for (let y = 0; y <= max; y += 25) {
-      window.scrollTo(0, y);
-      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
-      for (const [a, b] of pairs) {
-        const nextTop = document.querySelector(b).getBoundingClientRect().top;
-        for (const node of document.querySelectorAll(`${a} h1, ${a} h2, ${a} p, ${a} li, ${a} img, ${a} iframe`)) {
-          // decorative imagery may be covered; the carousel slides fill the splash
+    const next = { '#splash': '#tjenester', '#tjenester': '#kontakt', '#kontakt': '#om' };
+    const out = {};
+    for (const sel of Object.keys(next)) {
+      const el = document.querySelector(sel);
+      const top = el.offsetTop;
+      const height = el.offsetHeight;
+      const end = Math.min(top + height, document.documentElement.scrollHeight - window.innerHeight);
+      let began = null;
+      for (let y = top; y <= end && began === null; y += 25) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const nextTop = document.querySelector(next[sel]).getBoundingClientRect().top;
+        for (const node of el.querySelectorAll('h1, h2, p, li, .map')) {
           if (node.closest('[aria-hidden="true"]')) continue;
           const r = node.getBoundingClientRect();
-          if (r.height === 0) continue;
-          if (r.bottom < 0 || r.top > window.innerHeight) continue;   // off screen
-          const overlap = r.bottom - nextTop;
-          if (overlap > worst.overlap) {
-            worst = { overlap, block: a, y: window.scrollY, text: node.textContent.trim().slice(0, 30) };
-          }
+          if (r.height === 0 || r.bottom < 0 || r.top > window.innerHeight) continue;
+          if (r.bottom > nextTop + 2) { began = (window.scrollY - top) / height; break; }
         }
       }
+      out[sel] = began;
     }
     window.scrollTo(0, 0);
-    return worst;
+    return out;
   });
 
-  expect(worst.overlap,
-    `${worst.block} has ${Math.round(worst.overlap)}px of visible content buried at scrollY ${worst.y} ("${worst.text}")`
-  ).toBeLessThanOrEqual(2);
+  for (const [sel, began] of Object.entries(starts)) {
+    if (began === null) continue;   // never covered on this viewport, fine
+    expect(began,
+      `${sel} starts covering its own text ${Math.round(began * 100)}% into the block — too early to read it`
+    ).toBeGreaterThan(0.40);
+  }
 });
 
-test('the parallax eases off smoothly instead of snapping back to normal speed', async ({ page }) => {
-  /* The lag must stay inside each block's runway, but it must not simply STOP
-     at the edge of it. A hard clamp holds the block at half speed and then
-     returns it to 1x in a single frame, and the jolt is obvious — reported as
-     "it works for some pixels and then stops".
+test('the speed stays at the target for the whole block', async ({ page }) => {
+  /* "It should be constant around -0.5." No cap and no easing, so a block
+     travels at exactly the target speed from the moment it starts leaving until
+     it is gone.
 
-     Measured with a hard clamp: the speed steps 0.28 between samples (a true
-     discontinuity of 0.5, blunted by sampling). With the exponential approach
-     used now: 0.018. The threshold below separates the two by an order of
-     magnitude. */
+     Two earlier shapes were rejected: Math.min snapped from half speed to
+     normal in one frame, and easing from the knee drifted away from the target
+     over the back half of the block. Both are caught here — a snap shows up as
+     a large step between samples, a drift as a small held fraction. */
   await page.goto('/');
   const profile = await page.evaluate(async () => {
     document.documentElement.style.scrollBehavior = 'auto';
@@ -399,9 +387,11 @@ test('the parallax eases off smoothly instead of snapping back to normal speed',
     for (const sel of ['#splash', '#tjenester', '#kontakt']) {
       const el = document.querySelector(sel);
       const samples = [];
-      const start = el.offsetTop;
-      const end = el.offsetTop + el.offsetHeight;
-      for (let y = start; y <= end; y += 25) {
+      const end = Math.min(
+        el.offsetTop + el.offsetHeight,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      for (let y = el.offsetTop; y <= end; y += 25) {
         window.scrollTo(0, y);
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         samples.push({ y: window.scrollY, top: el.getBoundingClientRect().top });
@@ -415,62 +405,19 @@ test('the parallax eases off smoothly instead of snapping back to normal speed',
       for (let i = 1; i < speeds.length; i++) {
         biggestStep = Math.max(biggestStep, Math.abs(speeds[i] - speeds[i - 1]));
       }
-      out[sel] = { biggestStep, opening: speeds.slice(0, 3) };
+      const onTarget = speeds.filter((v) => v < -0.45 && v > -0.56).length;
+      out[sel] = { biggestStep, heldFraction: onTarget / speeds.length };
     }
     window.scrollTo(0, 0);
     return out;
   });
 
   for (const [sel, r] of Object.entries(profile)) {
+    expect(r.heldFraction,
+      `${sel} holds the target speed for only ${Math.round(r.heldFraction * 100)}% of its travel`
+    ).toBeGreaterThan(0.90);
     expect(r.biggestStep,
-      `${sel} changes speed by ${r.biggestStep.toFixed(3)} between samples — the effect is snapping, not easing`
+      `${sel} changes speed by ${r.biggestStep.toFixed(3)} between samples — the effect is stepping`
     ).toBeLessThan(0.1);
-
-    // and it still opens at roughly half speed
-    const opening = r.opening.reduce((a, b) => a + b, 0) / r.opening.length;
-    expect(opening, `${sel} opens at ${opening.toFixed(2)}, not near half speed`).toBeLessThan(-0.40);
-    expect(opening, `${sel} opens at ${opening.toFixed(2)}, not near half speed`).toBeGreaterThan(-0.65);
-  }
-});
-
-test('the target speed is held for a real distance, not just touched', async ({ page }) => {
-  /* "It should be constant around -0.5" — so the effect must SIT at half speed
-     rather than passing through it on the way to normal speed. An earlier
-     version eased from the very first pixel and never held the target at all.
-
-     Half speed can be held for 2 x KNEE x runway pixels of scrolling, because
-     the lag grows by 0.5 per pixel and the text is covered once the lag exceeds
-     the runway. Every pixel of --parallax-runway buys two pixels of half-speed
-     travel. */
-  await page.goto('/');
-  const held = await page.evaluate(async () => {
-    document.documentElement.style.scrollBehavior = 'auto';
-    const out = {};
-    for (const sel of ['#tjenester', '#kontakt']) {
-      const el = document.querySelector(sel);
-      const samples = [];
-      const end = el.offsetTop + el.offsetHeight;
-      for (let y = el.offsetTop; y <= end; y += 25) {
-        window.scrollTo(0, y);
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        samples.push({ y: window.scrollY, top: el.getBoundingClientRect().top });
-      }
-      let atTarget = 0;
-      for (let i = 1; i < samples.length; i++) {
-        const dy = samples[i].y - samples[i - 1].y;
-        if (dy <= 0) continue;
-        const speed = (samples[i].top - samples[i - 1].top) / dy;
-        if (speed < -0.45 && speed > -0.56) atTarget += dy;
-      }
-      out[sel] = atTarget;
-    }
-    window.scrollTo(0, 0);
-    return out;
-  });
-
-  for (const [sel, distance] of Object.entries(held)) {
-    expect(distance,
-      `${sel} holds half speed for only ${distance}px — the effect eases out too early`
-    ).toBeGreaterThan(300);
   }
 });
