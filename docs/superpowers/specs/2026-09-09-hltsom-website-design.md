@@ -213,9 +213,27 @@ Cost of leaving the compositor, measured rather than assumed: mobile Lighthouse 
 negative offset moves it with the scroll and it exits *faster* than normal — measured at −1.17×
 while looking entirely plausible in code review. This trap survives the move to JavaScript.
 
-**The maths is now exact.** A block exits over precisely its own height of scrolling, so
-displacing it by `height × factor` leaves it at `(1 − factor)` of scroll speed:
-`--parallax-factor: .5` means literally half speed.
+**The maths is exact where the effect is unclamped.** A block exits over precisely its own
+height of scrolling, so displacing it by `height × factor` leaves it at `(1 − factor)` of scroll
+speed: `--parallax-factor: .5` means literally half speed.
+
+**The lag is capped at each block's slack, and this cap is not optional.** A lagging block slides
+down over whatever follows it — that is the effect. True half speed asks a block to lag by half
+its own height, which is far more than the empty space beneath its content: measured at 163–434px
+of readable text disappearing under the arriving block, depending on viewport. Blocks 2 and 3
+carry only ~96px of dead space, so their lag is capped there.
+
+An effect that hides the text is not a feature, so readability wins. The consequence is that
+blocks 2 and 3 lag for about 92px and then resume normal speed, while the splash — whose only
+real content is the wordmark and tagline, centred, with the carousel behind them decorative —
+keeps 269–385px of lag at a true 0.5×.
+
+Decorative imagery is excluded from the slack measurement (`[aria-hidden="true"]`). Counting the
+splash slides, which fill the whole block, would report zero slack and disable the effect exactly
+where it works best.
+
+**To strengthen the effect on blocks 2 and 3, give them more bottom padding.** The cap follows
+the slack automatically, so extra space below the content converts directly into more lag.
 
 **The ratio is now uniform.** Measured −0.50/−0.51/−0.51 on a 1440×900 desktop and
 −0.50/−0.51/−0.51/−0.55 on a Pixel 7. The earlier CSS implementation drifted between −0.22 and

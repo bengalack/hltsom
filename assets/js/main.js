@@ -159,6 +159,38 @@ function initMap() {
 
 initMap();
 
+/* How far a block may lag before it starts burying its own text.
+
+   A lagging block slides down over whatever follows it. True half speed asks it
+   to lag by half its own height, which is far more than the empty space beneath
+   its content — measured at 163-434px of readable text disappearing under the
+   arriving block. So the lag is capped at the block's real slack: the gap
+   between its deepest content and its own bottom edge.
+
+   Measured once at load and on resize, never per frame, and with the transform
+   removed so the measurement cannot feed on itself. */
+function measureSlack(el) {
+  const previous = el.style.transform;
+  el.style.transform = 'none';
+
+  const bottom = el.getBoundingClientRect().bottom;
+  let deepest = -Infinity;
+  for (const node of el.querySelectorAll('h1, h2, p, li, img, iframe, .map')) {
+    // Decorative imagery does not count. The splash carousel slides fill the
+    // whole block, so counting them would report zero slack and disable the
+    // effect exactly where it matters most. They are aria-hidden precisely
+    // because they carry no meaning — covering their lower edge is harmless,
+    // covering the wordmark or the tagline is not.
+    if (node.closest('[aria-hidden="true"]')) continue;
+    const rect = node.getBoundingClientRect();
+    if (rect.height > 0) deepest = Math.max(deepest, rect.bottom);
+  }
+
+  el.style.transform = previous;
+  if (deepest === -Infinity) return 0;
+  return Math.max(0, bottom - deepest - 4);   // 4px so nothing grazes the edge
+}
+
 /* ---------- parallax ----------
    Outgoing blocks travel at roughly half scroll speed; incoming blocks at 1x.
 
@@ -192,14 +224,18 @@ function initParallax() {
   const all = Array.from(
     document.querySelectorAll('#splash, #tjenester, #kontakt, #om')
   );
-  const blocks = all.slice(0, -1);
+  const blocks = all.slice(0, -1).map((el) => ({ el, slack: 0 }));
   if (blocks.length === 0) return;
+
+  const remeasure = () => {
+    for (const block of blocks) block.slack = measureSlack(block.el);
+  };
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   let ticking = false;
 
   const clear = () => {
-    for (const el of blocks) el.style.transform = '';
+    for (const block of blocks) block.el.style.transform = '';
   };
 
   const update = () => {
@@ -215,14 +251,18 @@ function initParallax() {
     const travel = Number.isFinite(factor) ? factor : 0.5;
     const y = window.scrollY;
 
-    for (const el of blocks) {
+    for (const block of blocks) {
+      const el = block.el;
       const height = el.offsetHeight;
       if (height === 0) continue;
       // 0 while the block is fully in view, 1 once it has completely left the top
       let progress = (y - el.offsetTop) / height;
       progress = progress < 0 ? 0 : progress > 1 ? 1 : progress;
+
+      // capped so the arriving block never covers text that is still on screen
+      const offset = Math.min(progress * height * travel, block.slack);
       el.style.transform =
-        progress === 0 ? '' : `translate3d(0, ${(progress * height * travel).toFixed(2)}px, 0)`;
+        offset === 0 ? '' : `translate3d(0, ${offset.toFixed(2)}px, 0)`;
     }
   };
 
@@ -230,9 +270,14 @@ function initParallax() {
     if (!ticking) { ticking = true; requestAnimationFrame(update); }
   };
 
+  const onResize = () => { remeasure(); request(); };
+
   window.addEventListener('scroll', request, { passive: true });
-  window.addEventListener('resize', request);
+  window.addEventListener('resize', onResize);
+  window.addEventListener('load', onResize);   // fonts and images change the slack
   reduce.addEventListener('change', update);
+
+  remeasure();
   update();
 }
 

@@ -278,19 +278,42 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
   await page.goto('/');
   await page.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; });
 
-  const check = () => page.evaluate(() => {
+  /* The applied offset is min(progress x height x factor, slack), and slack is
+     a layout measurement the test should not re-derive. Instead read each
+     block's own ceiling by scrolling well past it, then predict every other
+     position from document coordinates alone. */
+  /* #splash is excluded: it is sized in 100svh, so its height — and therefore
+     its slack — legitimately changes when the viewport height does. That is
+     layout responding to layout, not the animation reading the viewport. The
+     other two blocks are content-sized and give a clean signal. The static
+     guard above ('never reads the viewport height') covers the splash. */
+  const ceilings = await page.evaluate(async () => {
+    const out = {};
+    for (const sel of ['#tjenester', '#kontakt']) {
+      const el = document.querySelector(sel);
+      window.scrollTo(0, el.offsetTop + el.offsetHeight + 200);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
+      out[sel] = m ? Number(m[1].split(',')[5]) : 0;
+    }
+    window.scrollTo(0, 0);
+    return out;
+  });
+
+  const check = () => page.evaluate((ceilings) => {
     const travel = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue('--parallax-factor')
     );
     const y = window.scrollY;
-    return ['#splash', '#tjenester', '#kontakt', '#om'].map((sel) => {
+    return ['#tjenester', '#kontakt'].map((sel) => {
       const el = document.querySelector(sel);
       const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
       const actual = m ? Number(m[1].split(',')[5]) : 0;
       const p = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
-      return { sel, actual, expected: p * el.offsetHeight * travel };
+      const expected = Math.min(p * el.offsetHeight * travel, ceilings[sel]);
+      return { sel, actual, expected };
     });
-  });
+  }, ceilings);
 
   for (const scrollY of [700, 1500, 2200]) {
     await page.evaluate((v) => window.scrollTo(0, v), scrollY);
@@ -313,4 +336,49 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
     await page.setViewportSize({ width: 412, height: 915 });
     await page.waitForTimeout(160);
   }
+});
+
+test('no block ever has its content covered by the next one', async ({ page }) => {
+  /* True half speed demands a block lag by half its own height. The blocks only
+     carry ~96px of dead space below their content, so the lag was burying
+     163-434px of readable text under the arriving block, depending on viewport.
+
+     The lag is therefore clamped to each block's actual slack. That weakens the
+     effect on tall blocks, and that is the correct trade: an effect that hides
+     the text is not a feature. */
+  await page.goto('/');
+  const worst = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    const pairs = [
+      ['#splash', '#tjenester'],
+      ['#tjenester', '#kontakt'],
+      ['#kontakt', '#om'],
+    ];
+    let worst = { overlap: 0, block: null, y: 0 };
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    for (let y = 0; y <= max; y += 25) {
+      window.scrollTo(0, y);
+      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+      for (const [a, b] of pairs) {
+        const nextTop = document.querySelector(b).getBoundingClientRect().top;
+        for (const node of document.querySelectorAll(`${a} h1, ${a} h2, ${a} p, ${a} li, ${a} img, ${a} iframe`)) {
+          // decorative imagery may be covered; the carousel slides fill the
+          // splash and are aria-hidden precisely because they carry no meaning
+          if (node.closest('[aria-hidden="true"]')) continue;
+          const r = node.getBoundingClientRect();
+          if (r.height === 0) continue;
+          // only counts if the content is actually on screen
+          if (r.bottom < 0 || r.top > window.innerHeight) continue;
+          const overlap = r.bottom - nextTop;
+          if (overlap > worst.overlap) worst = { overlap, block: a, y: window.scrollY };
+        }
+      }
+    }
+    window.scrollTo(0, 0);
+    return worst;
+  });
+
+  expect(worst.overlap,
+    `${worst.block} has ${Math.round(worst.overlap)}px of visible content buried under the next block at scrollY ${worst.y}`
+  ).toBeLessThanOrEqual(2);
 });

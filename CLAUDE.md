@@ -70,6 +70,11 @@ spec records why.
 - **The footer never parallaxes, and carries `position: relative; z-index: 1`.** It is shorter
   than the viewport so there is no exit phase to animate, and the z-index is what stops the
   lagging last block sliding over it (57px on a phone). It must stay static while scrolling.
+- **The parallax lag is capped at each block's slack** — the gap between its deepest content and
+  its own bottom edge. Removing the cap restores "true" half speed and buries 163-434px of
+  readable text under the arriving block. Decorative imagery (`aria-hidden`) is excluded from the
+  measurement, or the splash slides would report zero slack. More bottom padding on a block means
+  more lag, automatically.
 - **The parallax offset is POSITIVE.** It looks inverted and is not: a block has to lag the
   page to appear slower. A negative value drags it along with the scroll and it leaves *faster*
   than normal — measured at -1.17x, which reads as "the parallax is broken". A test measures
