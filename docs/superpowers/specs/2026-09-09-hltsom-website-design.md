@@ -111,9 +111,14 @@ The element is an `<a>`, not a `<button>`, so without JavaScript it opens Google
 tab.
 
 **The OpenStreetMap credit beneath the preview is required by the ODbL licence and must stay
-visible while the preview is shown.** It is deliberately removed when Google's map replaces the
+visible while the preview is shown.** It is deliberately hidden when Google's map replaces the
 preview: the credit describes tiles that are no longer on screen, and Google attributes itself
-inside its own iframe. Both states are asserted by tests.
+inside its own iframe.
+
+**Hidden with `visibility: hidden`, not removed.** Removing it collapses its box and shifts the
+whole page below at the moment of the click. A test asserts the contact block's height, the
+footer's position and the document length are unchanged across the click. Both states are
+asserted by tests.
 
 The preview centres on Sandvika generally and must be regenerated once the real street address
 is known.

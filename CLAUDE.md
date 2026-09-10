@@ -23,9 +23,10 @@ spec records why.
    on page load or on scroll; that would be a legal problem, not a performance one. See
    `docs/decisions/0002-static-map-preview.md` (which supersedes 0001).
    **The OpenStreetMap credit under the preview is required by the ODbL licence — do not
-   remove it from the preview.** It IS removed once the visitor clicks and Google's map takes
-   over, because the credit describes tiles that are no longer on screen. Both halves are
-   tested; neither is an accident.
+   remove it from the preview.** It is HIDDEN (`visibility: hidden`, never removed, never
+   `display: none`) once the visitor clicks and Google's map takes over, because the credit
+   then describes tiles that are no longer on screen. Hiding rather than removing keeps its box,
+   so the page does not resettle under the visitor's finger. All of it is tested.
 5. **Relative asset paths only** (`assets/…`, never `/assets/…`). The site moves from a
    GitHub Pages subpath to an apex domain; root-absolute paths break silently on one of them.
 6. **No Google Fonts CDN.** Fonts are self-hosted in `assets/fonts/`. Loading them from

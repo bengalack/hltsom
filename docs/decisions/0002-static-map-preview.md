@@ -42,11 +42,18 @@ Implementation notes:
 - **The OpenStreetMap attribution is required by the ODbL licence for as long as the OSM
   preview is on screen, and must stay visible while it is.** Removing it from the preview is a
   licence violation, not a tidy-up.
-  **It is deliberately removed when the visitor clicks and Google's map replaces the preview**
+  **It is deliberately hidden when the visitor clicks and Google's map replaces the preview**
   (`initMap` in `main.js`). At that point the credit describes tiles that are no longer
   displayed, so leaving it there is both confusing and wrong; Google attributes itself inside
-  its own iframe. `tests/e2e/map-consent.spec.js` asserts both halves: present before the
-  click, gone after.
+  its own iframe. `tests/e2e/map-consent.spec.js` asserts both halves: visible before the
+  click, hidden after.
+
+  **Hidden with `visibility: hidden`, never removed and never `display: none`.** Taking the
+  element out of the layout collapses its box, and the whole page below shifts up at the exact
+  moment the visitor clicks — it visibly resettles under their finger. `visibility: hidden`
+  keeps the identical space and, unlike `opacity: 0`, also takes the stale credit out of the
+  accessibility tree. A test asserts the contact block's height, the footer's position and the
+  document length are all unchanged across the click.
 - Google's own map imagery could not be used for the preview: their terms prohibit caching or
   redistributing it. This is why the preview is OSM and the interactive map is Google.
 

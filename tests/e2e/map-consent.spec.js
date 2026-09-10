@@ -86,7 +86,37 @@ test('the OpenStreetMap credit disappears once Google takes over', async ({ page
   await page.locator('.map__load').click();
 
   await expect(page.locator('#kontakt iframe')).toHaveCount(1);
-  await expect(page.locator('.map__attribution')).toHaveCount(0);
+  await expect(page.locator('.map__attribution')).toBeHidden();
+});
+
+test('accepting the map does not shift the page around', async ({ page }) => {
+  /* The credit is hidden, not removed. Removing the element collapses its box,
+     and everything below shifts up at the moment of the click — the page
+     visibly resettles under the visitor's finger. */
+  await page.goto('/');
+  await page.locator('#kontakt').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+
+  const measure = () => page.evaluate(() => ({
+    kontaktHeight: document.querySelector('#kontakt').offsetHeight,
+    footerTop: document.querySelector('.site-footer').offsetTop,
+    docHeight: document.documentElement.scrollHeight,
+    creditBox: (() => {
+      const r = document.querySelector('.map__attribution').getBoundingClientRect();
+      return Math.round(r.height);
+    })(),
+  }));
+
+  const before = await measure();
+  await page.locator('.map__load').click();
+  await expect(page.locator('#kontakt iframe')).toHaveCount(1);
+  await page.waitForTimeout(400);
+  const after = await measure();
+
+  expect(after.kontaktHeight, 'the contact block changed height').toBe(before.kontaktHeight);
+  expect(after.footerTop, 'the footer moved').toBe(before.footerTop);
+  expect(after.docHeight, 'the page changed length').toBe(before.docHeight);
+  expect(after.creditBox, 'the credit line gave up its space').toBe(before.creditBox);
 });
 
 test('contact details are tappable links', async ({ page }) => {

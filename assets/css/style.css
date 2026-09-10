@@ -411,6 +411,11 @@ html { scroll-behavior: smooth; }
 }
 .map__attribution a { text-decoration: underline; text-underline-offset: 2px; }
 
+/* Applied once Google's map replaces the preview. Hidden rather than removed:
+   removing the element would collapse its box and shift everything below it at
+   the exact moment the visitor clicks. Do not swap this for display:none. */
+.map__attribution.is-spent { visibility: hidden; }
+
 .map iframe {
   width: 100%;
   aspect-ratio: 4 / 3;

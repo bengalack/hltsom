@@ -152,8 +152,14 @@ function initMap() {
     /* The OpenStreetMap credit belongs to the preview only. Once Google's map
        is on screen the line is both wrong and confusing — Google carries its
        own attribution inside the iframe. The ODbL obligation ends with the
-       tiles it describes. */
-    document.querySelector('.map__attribution')?.remove();
+       tiles it describes.
+
+       It is HIDDEN, not removed. Removing the element removes its box, and
+       everything below it shifts up the moment the visitor clicks — the page
+       visibly resettles. `visibility: hidden` keeps the exact same space,
+       and unlike `opacity: 0` it also takes the stale credit out of the
+       accessibility tree. */
+    document.querySelector('.map__attribution')?.classList.add('is-spent');
   });
 }
 
