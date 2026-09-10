@@ -231,7 +231,14 @@ function initParallax() {
   if (blocks.length === 0) return;
 
   const readCaps = () => {
-    for (const block of blocks) block.max = measureRunway(block.el);
+    for (const block of blocks) {
+      block.max = measureRunway(block.el);
+      // published so tests can predict the offset, and so the value is
+      // visible in devtools when tuning --parallax-runway
+      block.el.dataset.parallaxRunway = Number.isFinite(block.max)
+        ? block.max.toFixed(1)
+        : 'none';
+    }
   };
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -262,9 +269,22 @@ function initParallax() {
       let progress = (y - el.offsetTop) / height;
       progress = progress < 0 ? 0 : progress > 1 ? 1 : progress;
 
-      const offset = Math.min(progress * height * travel, block.max);
+      /* The lag has to stay inside the runway, but it must not simply STOP at
+         the edge of it: a hard clamp holds the block at half speed and then
+         snaps it back to 1x, and the jolt is obvious.
+
+         So it saturates instead. The block starts at a true half speed and
+         eases smoothly toward normal speed as it uses up its runway, never
+         quite reaching it. Exponential approach: the slope is 1 at the start
+         and decays gently, so there is no point at which the speed jumps. */
+      const wanted = progress * height * travel;
+      const runway = block.max;
+      const offset = Number.isFinite(runway)
+        ? runway * (1 - Math.exp(-wanted / runway))
+        : wanted;
+
       el.style.transform =
-        offset === 0 ? '' : `translate3d(0, ${offset.toFixed(2)}px, 0)`;
+        offset < 0.01 ? '' : `translate3d(0, ${offset.toFixed(2)}px, 0)`;
     }
   };
 

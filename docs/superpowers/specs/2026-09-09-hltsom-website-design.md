@@ -258,6 +258,20 @@ block, with the visitor unable to read what was on offer.
 space and the arriving block eats it, so nothing readable is ever covered. The lag is then capped
 at whatever runway actually exists.
 
+**The lag saturates into the runway; it does not stop at the edge of it.** A hard clamp holds a
+block at half speed and then returns it to 1× in a single frame, and the jolt is obvious — it was
+reported as "it works for some pixels and then stops". Instead the offset approaches the runway
+exponentially: `runway × (1 − e^(−wanted/runway))`. The slope is 1 at the start, so the block
+opens at a true half speed, and decays gently toward normal speed as the runway is used up. It
+never quite reaches the runway, which also removes any need for a safety margin.
+
+Measured speed change between samples: **0.018** with the exponential approach, against **0.28**
+with a hard clamp (a true discontinuity of 0.5, blunted by sampling). A test bounds this at 0.1,
+separating the two by an order of magnitude.
+
+Because the effect eases, the *average* speed over a whole exit lands near −0.8 by construction.
+The number that means something is the **opening** speed, and that is what the tests measure.
+
 **The runway is measured, not assumed.** `measureRunway()` in `main.js` takes the distance from a
 block's deepest content to its own bottom edge, once at load and on resize — never per frame, and
 with the transform removed so the measurement cannot feed on itself. A fixed number would be
@@ -265,8 +279,12 @@ right at one viewport and wrong at the next: the splash's runway is its centring
 with its own height. Decorative imagery (`[aria-hidden="true"]`) is excluded — the carousel
 slides fill the splash, and counting them would report no runway at all.
 
-Measured: −0.50× to −0.53× on every block, with 252–385px of lag and **zero content covered** on
-a Pixel 7, a 900×700 window and a 1440×900 window.
+Measured: every block opens at −0.51× and eases to between −0.81× and −0.93× by the end of its
+exit, with 240–285px of lag and **zero content covered** on a Pixel 7, a 900×700 window and a
+1440×900 window.
+
+Each block publishes the runway it measured as `data-parallax-runway`, so the value is visible in
+devtools when tuning and the tests can predict the offset instead of re-deriving it.
 
 **Which knob to turn.** Raising `--parallax-runway` strengthens the effect, because the cap
 follows it. Lowering it weakens the effect rather than covering text. Both are safe. Removing the

@@ -42,11 +42,17 @@ test('reduced motion leaves every block untransformed', async ({ page }) => {
   expect(transforms).toEqual(['none', 'none', 'none', 'none']);
 });
 
-/* Measure the effective scroll speed of a block while it is leaving the top of
-   the viewport: how far it moves on screen per pixel scrolled.
+/* Measure the effective scroll speed of a block as it BEGINS to leave the top
+   of the viewport: how far it moves on screen per pixel scrolled.
      -1.0 = normal scroll speed (no parallax)
      -0.5 = half speed (the brief)
       0.0 = pinned
+
+   The opening rather than the average, because the effect eases: it starts at
+   half speed and approaches normal speed as the block uses up its runway. An
+   average over the whole exit lands near -0.8 by construction and says nothing
+   about whether the parallax is working.
+
    Smooth scrolling must be disabled first: window.scrollTo() animates, so every
    sample would otherwise be taken mid-flight. That mistake made an earlier
    version of this test pass against a completely broken implementation. */
@@ -68,33 +74,26 @@ async function exitSpeed(page, selector) {
     }
     window.scrollTo(0, 0);
 
-    // the active phase is where the transform is actually changing
-    let first = null, last = null;
+    // first sample where the block starts moving, then a short window after it
+    let first = -1;
     for (let i = 1; i < samples.length; i++) {
-      if (Math.abs(samples[i].ty - samples[i - 1].ty) > 0.4) {
-        if (!first) first = samples[i - 1];
-        last = samples[i];
-      }
+      if (Math.abs(samples[i].ty - samples[i - 1].ty) > 0.4) { first = i - 1; break; }
     }
-    if (!first || !last || last.y === first.y) return null;
-    return (last.top - first.top) / (last.y - first.y);
+    if (first === -1) return null;
+    const last = Math.min(first + 4, samples.length - 1);
+    if (samples[last].y === samples[first].y) return null;
+    return (samples[last].top - samples[first].top) / (samples[last].y - samples[first].y);
   }, selector);
 }
 
-/* The brief says "half speed". In practice the ratio drifts between about -0.2
-   and -0.65 depending on how tall the block is relative to the viewport, because
-   the translate is a percentage of the block while the exit range is not. The
-   design intent is "clearly slower than the page", so the bounds below are set
-   to catch the failures that matter — no movement at all, or movement at or
-   past normal speed — rather than to police a decimal. */
-const SLOWER_THAN_PAGE = -0.75;   // anything below this is barely moving
-const CLEARLY_SLOWED    = -0.20;  // anything above this is not slowed enough
+const SLOWER_THAN_PAGE = -0.70;   // at or past this is effectively normal speed
+const CLEARLY_SLOWED    = -0.20;  // anything above this is barely moving at all
 
 async function expectHalfSpeed(page, selector) {
   const speed = await exitSpeed(page, selector);
   expect(speed, `${selector} has no parallax at all`).not.toBeNull();
   expect(speed, `${selector} is not slowed enough: measured ${speed}`).toBeLessThan(CLEARLY_SLOWED);
-  expect(speed, `${selector} is almost pinned: measured ${speed}`).toBeGreaterThan(SLOWER_THAN_PAGE);
+  expect(speed, `${selector} opens at ${speed} — not clearly slower than the page`).toBeGreaterThan(SLOWER_THAN_PAGE);
   return speed;
 }
 
@@ -256,7 +255,7 @@ test('parallax works on touch devices too', async ({ page }, testInfo) => {
     const speed = await exitSpeed(page, sel);
     expect(speed, `${sel} has no parallax on mobile`).not.toBeNull();
     expect(speed, `${sel} not slowed: ${speed}`).toBeLessThan(CLEARLY_SLOWED);
-    expect(speed, `${sel} almost pinned: ${speed}`).toBeGreaterThan(SLOWER_THAN_PAGE);
+    expect(speed, `${sel} opens at ${speed} — not clearly slower than the page`).toBeGreaterThan(SLOWER_THAN_PAGE);
   }
 });
 
@@ -287,20 +286,7 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
      layout responding to layout, not the animation reading the viewport. The
      other two blocks are content-sized and give a clean signal. The static
      guard above ('never reads the viewport height') covers the splash. */
-  const ceilings = await page.evaluate(async () => {
-    const out = {};
-    for (const sel of ['#tjenester', '#kontakt']) {
-      const el = document.querySelector(sel);
-      window.scrollTo(0, el.offsetTop + el.offsetHeight + 200);
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
-      out[sel] = m ? Number(m[1].split(',')[5]) : 0;
-    }
-    window.scrollTo(0, 0);
-    return out;
-  });
-
-  const check = () => page.evaluate((ceilings) => {
+  const check = () => page.evaluate(() => {
     const travel = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue('--parallax-factor')
     );
@@ -310,10 +296,15 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
       const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
       const actual = m ? Number(m[1].split(',')[5]) : 0;
       const p = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
-      const expected = Math.min(p * el.offsetHeight * travel, ceilings[sel]);
+      const wanted = p * el.offsetHeight * travel;
+      // the block publishes the runway it measured; the offset saturates into it
+      const runway = parseFloat(el.dataset.parallaxRunway);
+      const expected = Number.isFinite(runway)
+        ? runway * (1 - Math.exp(-wanted / runway))
+        : wanted;
       return { sel, actual, expected };
     });
-  }, ceilings);
+  });
 
   for (const scrollY of [700, 1500, 2200]) {
     await page.evaluate((v) => window.scrollTo(0, v), scrollY);
@@ -381,4 +372,55 @@ test('an arriving block never covers text that is still on screen', async ({ pag
   expect(worst.overlap,
     `${worst.block} has ${Math.round(worst.overlap)}px of visible content buried at scrollY ${worst.y} ("${worst.text}")`
   ).toBeLessThanOrEqual(2);
+});
+
+test('the parallax eases off smoothly instead of snapping back to normal speed', async ({ page }) => {
+  /* The lag must stay inside each block's runway, but it must not simply STOP
+     at the edge of it. A hard clamp holds the block at half speed and then
+     returns it to 1x in a single frame, and the jolt is obvious — reported as
+     "it works for some pixels and then stops".
+
+     Measured with a hard clamp: the speed steps 0.28 between samples (a true
+     discontinuity of 0.5, blunted by sampling). With the exponential approach
+     used now: 0.018. The threshold below separates the two by an order of
+     magnitude. */
+  await page.goto('/');
+  const profile = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    const out = {};
+    for (const sel of ['#splash', '#tjenester', '#kontakt']) {
+      const el = document.querySelector(sel);
+      const samples = [];
+      const start = el.offsetTop;
+      const end = el.offsetTop + el.offsetHeight;
+      for (let y = start; y <= end; y += 25) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        samples.push({ y: window.scrollY, top: el.getBoundingClientRect().top });
+      }
+      const speeds = [];
+      for (let i = 1; i < samples.length; i++) {
+        const dy = samples[i].y - samples[i - 1].y;
+        if (dy > 0) speeds.push((samples[i].top - samples[i - 1].top) / dy);
+      }
+      let biggestStep = 0;
+      for (let i = 1; i < speeds.length; i++) {
+        biggestStep = Math.max(biggestStep, Math.abs(speeds[i] - speeds[i - 1]));
+      }
+      out[sel] = { biggestStep, opening: speeds.slice(0, 3) };
+    }
+    window.scrollTo(0, 0);
+    return out;
+  });
+
+  for (const [sel, r] of Object.entries(profile)) {
+    expect(r.biggestStep,
+      `${sel} changes speed by ${r.biggestStep.toFixed(3)} between samples — the effect is snapping, not easing`
+    ).toBeLessThan(0.1);
+
+    // and it still opens at roughly half speed
+    const opening = r.opening.reduce((a, b) => a + b, 0) / r.opening.length;
+    expect(opening, `${sel} opens at ${opening.toFixed(2)}, not near half speed`).toBeLessThan(-0.40);
+    expect(opening, `${sel} opens at ${opening.toFixed(2)}, not near half speed`).toBeGreaterThan(-0.65);
+  }
 });
