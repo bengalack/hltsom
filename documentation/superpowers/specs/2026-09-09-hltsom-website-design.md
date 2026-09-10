@@ -6,7 +6,7 @@
 
 > This is a **living document**. It always describes the site as it *should currently be*.
 > When a decision changes, edit this file in place so it stays the single source of truth.
-> Decisions that **reverse** something recorded here also get an ADR in `docs/decisions/`,
+> Decisions that **reverse** something recorded here also get an ADR in `documentation/decisions/`,
 > explaining why — see [Governance](#12-governance--how-to-change-this-design).
 
 ---
@@ -323,7 +323,7 @@ text, and **insufficient for body copy** — never use it as a text colour at 17
 link underlines, the service-list rules and the dropdown's top border.
 
 If the photography is ever replaced with materially different colours, re-derive these values;
-`docs/image-spec.md` documents the method.
+`documentation/image-spec.md` documents the method.
 
 **The canvas behind the document is `--ink`, set on `html`.** A phone rubber-bands past both
 ends of the page and reveals the canvas; a desktop never does, so this only ever showed on
@@ -397,7 +397,7 @@ legitimate paid option if the open-licence face disappoints.
 | Image tooling | Squoosh (browser) or ImageMagick locally — deliberately **outside** the repo |
 | Fonts | Self-hosted `.woff2` |
 | Analytics | Cloudflare Web Analytics, one script tag with SRI |
-| Hosting | GitHub Pages from `main` |
+| Hosting | GitHub Pages from `main`, folder `/docs`. Portable to Cloudflare Pages or Netlify by pointing the output directory at `docs` — there is no build command |
 
 Rejected: Eleventy and Astro. Both solve problems this site does not have — content
 collections, component reuse, many pages — and both trade the longevity requirement for
@@ -407,23 +407,37 @@ build-time convenience used a handful of times a year.
 
 ```
 hltsom/
-├── CLAUDE.md                    ← constraints; loaded automatically by agents
-├── README.md                    ← humans: what this is, how to deploy
-├── index.html
-├── CNAME                        ← added only at domain switch-over
-├── robots.txt
-├── sitemap.xml
-├── assets/
-│   ├── css/style.css
-│   ├── js/main.js
-│   ├── fonts/
-│   └── img/
-├── tools/optimize-images.md
-└── docs/
-    ├── superpowers/specs/2026-09-09-hltsom-website-design.md   ← this file
-    ├── decisions/               ← ADRs
-    └── image-spec.md
+├── docs/                     ← THE DOCUMENT ROOT. Only this is ever served.
+│   ├── index.html
+│   ├── .nojekyll             ← serve files verbatim, no Jekyll
+│   ├── robots.txt
+│   ├── sitemap.xml
+│   ├── CNAME                 ← added only at the domain switch-over
+│   └── assets/
+│       ├── css/style.css
+│       ├── js/main.js
+│       ├── fonts/
+│       └── img/
+├── documentation/            ← never served
+│   ├── superpowers/specs/2026-09-09-hltsom-website-design.md   ← this file
+│   ├── superpowers/plans/
+│   ├── decisions/            ← ADRs
+│   └── image-spec.md
+├── tests/                    ← never served; isolated Playwright setup
+├── tools/                    ← never served; image preparation notes
+├── CLAUDE.md
+└── README.md
 ```
+
+**`docs/` holds the website, `documentation/` holds the writing about it.** The naming is
+unfortunate and is not a mistake: `docs/` is the only subfolder GitHub Pages will serve from a
+branch, so putting the site there is what allows everything else to stay unreachable — with no
+CI, no build step and no deploy workflow to rot.
+
+**Only the site is exposed.** A visitor in a browser can reach `docs/` and nothing above it. The
+specs, ADRs, tests and tooling are outside the document root, so they cannot be requested at all
+rather than merely being unlinked. Tests assert both halves: that `docs/` contains only site
+files, and that the working notes return an error over HTTP.
 
 ### 7.2 Relative paths — non-negotiable
 
@@ -442,7 +456,7 @@ The **carousel** now uses four CC0 photographs (vintage Singer body, needle thro
 presser foot on cloth, thread spool and thimble), sourced via Openverse and committed to
 `assets/img/`. They are placeholders in the sense that they are not *her* workshop — but they
 are real, coherent photography rather than grey rectangles, and the palette is derived from
-them (§6). Provenance and licence for each file are recorded in `docs/image-spec.md`.
+them (§6). Provenance and licence for each file are recorded in `documentation/image-spec.md`.
 
 Known limitation: the source tops out at 1024px wide. That is acceptable for placeholders and
 **not** acceptable for the final site — real photography must meet the 2400px figure below.
@@ -457,7 +471,7 @@ circle throws the corners away.
 the tailor, and filling it with a stranger's portrait would misrepresent the business even as a
 placeholder. It is the first image to replace.
 
-`docs/image-spec.md` records — per slot — the subject, aspect ratio, minimum resolution and
+`documentation/image-spec.md` records — per slot — the subject, aspect ratio, minimum resolution and
 export recipe.
 
 The one rule that is a **hard constraint rather than a preference**:
@@ -617,7 +631,7 @@ Done means all of these pass:
   photo: just edit this document. No ceremony.
 - **Reversing a decision** in [§2](#2-decisions-at-a-glance), or adding a lasting constraint —
   e.g. dropping the map, adding a build step, adding a cookie-setting service: write an ADR in
-  `docs/decisions/`, naming the section it changes. Then edit this document to match and link
+  `documentation/decisions/`, naming the section it changes. Then edit this document to match and link
   the ADR.
 
 This document answers *what is true now*. ADRs answer *why it stopped being what it was*. Git
@@ -668,11 +682,14 @@ registered:
    services, about text and photography. Then remove the `noindex` tag (§9.1) and uncomment the
    `Sitemap:` line in `robots.txt`. `tests/e2e/prelaunch.spec.js` will fail until the tag and
    the placeholders agree, in either direction.
-1. Add a `CNAME` file at the repo root containing `hltsom.no`
+1. Add a `CNAME` file **inside `docs/`** containing `hltsom.no` — it must sit in the document
+   root, not at the repository root
 2. DNS: four `A` records at the apex pointing to GitHub Pages' IPs, plus a `www` `CNAME` to
    `bengalack.github.io`
 3. Update the canonical URL, Open Graph URLs and `sitemap.xml` to the new origin
 4. Enable **Enforce HTTPS** in the repository's Pages settings, once the certificate issues
+   (Pages source is branch `main`, folder `/docs`; on Cloudflare Pages the equivalent is an empty
+   build command with output directory `docs`)
 5. Update the site URL in the `LocalBusiness` structured data
 6. Update the Google Business Profile website field
 

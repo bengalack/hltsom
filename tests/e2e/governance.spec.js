@@ -8,8 +8,8 @@ const read = (p) => readFileSync(resolve(repoRoot, p), 'utf8');
 
 test('CLAUDE.md exists and points at the spec and the ADR folder', () => {
   const md = read('CLAUDE.md');
-  expect(md).toContain('docs/superpowers/specs/2026-09-09-hltsom-website-design.md');
-  expect(md).toContain('docs/decisions/');
+  expect(md).toContain('documentation/superpowers/specs/2026-09-09-hltsom-website-design.md');
+  expect(md).toContain('documentation/decisions/');
 });
 
 test('CLAUDE.md states the load-bearing constraints', () => {
@@ -42,8 +42,8 @@ test('CLAUDE.md preserves the OpenStreetMap attribution requirement', () => {
 
 test('supporting docs exist', () => {
   for (const p of [
-    'docs/decisions/README.md',
-    'docs/image-spec.md',
+    'documentation/decisions/README.md',
+    'documentation/image-spec.md',
     'tools/optimize-images.md',
     'README.md',
   ]) {

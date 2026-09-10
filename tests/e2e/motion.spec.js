@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const css = () => readFileSync(new URL('../../assets/css/style.css', import.meta.url), 'utf8');
-const js = () => readFileSync(new URL('../../assets/js/main.js', import.meta.url), 'utf8');
+const css = () => readFileSync(new URL('../../docs/assets/css/style.css', import.meta.url), 'utf8');
+const js = () => readFileSync(new URL('../../docs/assets/js/main.js', import.meta.url), 'utf8');
 
 test('parallax does not use a viewport-relative timeline', () => {
   // animation-timeline: view() and scroll() are both measured against the

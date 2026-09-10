@@ -6,7 +6,7 @@ test('the logo image actually loads and is not drawn in currentColor', async ({ 
   // page. currentColor resolves to black there and then vanishes entirely under
   // the nav's mix-blend-mode: difference — an invisible logo that no layout
   // assertion would catch.
-  const svg = readFileSync(new URL('../../assets/img/logo.svg', import.meta.url), 'utf8');
+  const svg = readFileSync(new URL('../../docs/assets/img/logo.svg', import.meta.url), 'utf8');
   const withoutComments = svg.replace(/<!--[\s\S]*?-->/g, '');
   expect(withoutComments).not.toMatch(/(?:fill|stroke|color)\s*=\s*"currentColor"/);
 
@@ -25,7 +25,7 @@ test('logo and burger are fixed and always visible', async ({ page }) => {
 });
 
 test('the logo reads HLT over SØM on two lines', () => {
-  const svg = readFileSync(new URL('../../assets/img/logo.svg', import.meta.url), 'utf8');
+  const svg = readFileSync(new URL('../../docs/assets/img/logo.svg', import.meta.url), 'utf8');
   const lines = [...svg.matchAll(/<text[^>]*>([^<]+)<\/text>/g)].map((m) => m[1].trim());
   expect(lines).toEqual(['HLT', 'SØM']);
 });

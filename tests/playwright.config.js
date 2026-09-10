@@ -12,7 +12,8 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npx serve .. -l 5173 --no-clipboard',
+    // serves ONLY the site folder, exactly as GitHub Pages and Cloudflare will
+    command: 'npx serve ../docs -l 5173 --no-clipboard',
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 60_000,

@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Supersedes:** [ADR 0003](0003-no-parallax-on-touch.md) entirely, and the "CSS scroll-driven
 animations, not JS scroll handlers" choice in §5 and §7 of
-`docs/superpowers/specs/2026-09-09-hltsom-website-design.md`
+`documentation/superpowers/specs/2026-09-09-hltsom-website-design.md`
 
 ## Context
 

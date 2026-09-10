@@ -1,7 +1,7 @@
 /* HLT Søm — the only JavaScript on this site.
    Three jobs: the splash carousel, the burger menu, and upgrading the static
    map preview to Google's interactive map on click.
-   See docs/decisions/ 0001 and 0002. */
+   See documentation/decisions/ 0001 and 0002. */
 
 const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -134,7 +134,7 @@ initNav();
 
    Do NOT "optimise" this by loading the iframe on page load or on scroll.
    Doing so lets Google set cookies without consent, which is a legal problem
-   rather than a performance one. See docs/decisions/0002-static-map-preview.md. */
+   rather than a performance one. See documentation/decisions/0002-static-map-preview.md. */
 function initMap() {
   const link = document.querySelector('.map__load[data-map-src]');
   if (!link) return;
@@ -183,7 +183,7 @@ initMap();
 
    Do not reintroduce innerHeight, clientHeight or visualViewport in this
    function — a test forbids it, because that is precisely the bug.
-   See docs/decisions/0004-parallax-in-javascript.md. */
+   See documentation/decisions/0004-parallax-in-javascript.md. */
 function initParallax() {
   /* EVERY block, the last one included, at full strength and with no cap.
 

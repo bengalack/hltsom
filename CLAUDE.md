@@ -2,10 +2,29 @@
 
 One-page website for a tailoring business in Bærum, Norway.
 
+## Where things live
+
+- **`docs/` is the website, and the only folder ever served.** Its naming is awkward on purpose:
+  `docs/` is the sole subfolder GitHub Pages will serve from a branch, so putting the site there
+  is what keeps everything else unreachable from a browser — with no build step and no deploy
+  workflow. Do not "tidy" the site back to the repository root; that would publish the working
+  notes along with it.
+- **`documentation/` is the writing about the site** — spec, ADRs, image spec. Never served.
+- `tests/` and `tools/` are also outside the document root.
+
+Serve `docs`, not the repository root, when running locally:
+
+```bash
+npx serve docs -l 5173
+```
+
+Tests assert that `docs/` contains only site files and that `documentation/`, `tests/`, `tools/`,
+`CLAUDE.md` and `README.md` all return an error over HTTP.
+
 **Before changing anything, read:**
 
-1. `docs/superpowers/specs/2026-09-09-hltsom-website-design.md` — the living design spec
-2. `docs/decisions/` — ADRs recording anything that later reversed the spec
+1. `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md` — the living design spec
+2. `documentation/decisions/` — ADRs recording anything that later reversed the spec
 
 ## Load-bearing constraints
 
@@ -21,7 +40,7 @@ spec records why.
    from this origin. Nothing reaches Google until the visitor clicks it, and that click is the
    consent action — which is why the site needs no cookie banner. Do NOT load the Google iframe
    on page load or on scroll; that would be a legal problem, not a performance one. See
-   `docs/decisions/0002-static-map-preview.md` (which supersedes 0001).
+   `documentation/decisions/0002-static-map-preview.md` (which supersedes 0001).
    **The OpenStreetMap credit under the preview is required by the ODbL licence — do not
    remove it from the preview.** It is HIDDEN (`visibility: hidden`, never removed, never
    `display: none`) once the visitor clicks and Google's map takes over, because the credit
@@ -46,13 +65,13 @@ spec records why.
   in by `main.js` after load, keeping ~900KB off the critical path. Giving them all a plain
   `src` will fail a test.
 - **The colour tokens are derived from the carousel photographs**, not picked independently. If
-  the photography changes substantially, re-derive them — `docs/image-spec.md` explains how.
+  the photography changes substantially, re-derive them — `documentation/image-spec.md` explains how.
 - **Parallax is JavaScript, and must stay keyed to document coordinates only.** Never
   reintroduce `innerHeight`, `clientHeight`, `visualViewport` or `getBoundingClientRect` into
   `initParallax` — a test forbids each by name. CSS scroll-driven animations look like the
   better tool and are how this was first built; they measure against the scrollport, which
   mobile browsers resize mid-drag, which made blocks jump 58px on a real phone. See
-  `docs/decisions/0004-parallax-in-javascript.md` (supersedes 0003).
+  `documentation/decisions/0004-parallax-in-javascript.md` (supersedes 0003).
 - **`html` carries `background: var(--ink)`, `body` carries `--paper`.** That is not a
   duplication to clean up. The root's background paints the canvas revealed when a phone
   rubber-bands past the top or bottom; without it, overscroll shows a white band below the dark
@@ -89,7 +108,7 @@ spec records why.
   applied after the last letter too, so "MENY" would sit visibly off-centre above the bars
   without it.
 - **`logo.svg` uses an explicit `#ffffff` and Georgia**, not `currentColor` and not the site
-  webfont. An SVG loaded through an `<img>` can do neither. See `docs/image-spec.md`.
+  webfont. An SVG loaded through an `<img>` can do neither. See `documentation/image-spec.md`.
 - **Block images are square sources in a circular crop.** A 4:5 photo will have its corners
   thrown away. Supply squares with the subject centred.
 
@@ -98,7 +117,7 @@ spec records why.
 - Ordinary iteration (content, wording, spacing, timings, a new service, a swapped photo):
   edit the spec in place. No ceremony.
 - Reversing a decision above, or adding a lasting constraint: write an ADR in
-  `docs/decisions/`, then edit the spec to match and link the ADR.
+  `documentation/decisions/`, then edit the spec to match and link the ADR.
 
 ## Testing
 

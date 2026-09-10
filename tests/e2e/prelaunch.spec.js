@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const html = () => readFileSync(resolve(repoRoot, 'index.html'), 'utf8');
+const html = () => readFileSync(resolve(repoRoot, 'docs/index.html'), 'utf8');
 
 /* Markers that mean the page still carries invented content. Fake contact
    details reaching a search index is worse than not being indexed at all:
@@ -50,14 +50,14 @@ test('placeholders and the noindex tag stay in step', () => {
 test('robots.txt never uses Disallow while the page relies on noindex', () => {
   // A crawler blocked by robots.txt cannot read the noindex tag, so the two
   // together are weaker than noindex alone.
-  const robots = readFileSync(resolve(repoRoot, 'robots.txt'), 'utf8');
+  const robots = readFileSync(resolve(repoRoot, 'docs/robots.txt'), 'utf8');
   if (hasNoindex()) {
     expect(robots).not.toMatch(/^\s*Disallow:\s*\/\s*$/m);
   }
 });
 
 test('no sitemap is advertised while the site is noindexed', () => {
-  const robots = readFileSync(resolve(repoRoot, 'robots.txt'), 'utf8');
+  const robots = readFileSync(resolve(repoRoot, 'docs/robots.txt'), 'utf8');
   if (hasNoindex()) {
     expect(robots).not.toMatch(/^\s*Sitemap:/m);
   }

@@ -26,5 +26,5 @@ file size and avoids publishing GPS coordinates from the camera.
 
 ## Then
 
-Follow the swap steps in `docs/image-spec.md`, and re-check that the wordmark is still legible
+Follow the swap steps in `documentation/image-spec.md`, and re-check that the wordmark is still legible
 over any new splash image.

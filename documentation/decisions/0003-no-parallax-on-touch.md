@@ -3,7 +3,7 @@
 **Date:** 2026-09-09
 **Status:** Superseded by [ADR 0004](0004-parallax-in-javascript.md) — the jitter was fixed rather than avoided, and parallax runs on touch devices again
 **Supersedes:** the "at every viewport width" scope in §5 of
-`docs/superpowers/specs/2026-09-09-hltsom-website-design.md`
+`documentation/superpowers/specs/2026-09-09-hltsom-website-design.md`
 
 ## Context
 

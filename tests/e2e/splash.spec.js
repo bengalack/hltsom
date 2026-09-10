@@ -63,14 +63,14 @@ test('slide backgrounds actually render, and the CSP blocks nothing', async ({ p
 
 test('index.html contains no inline style attributes', () => {
   // The CSP has no 'unsafe-inline', so any style attribute is dead on arrival.
-  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../../docs/index.html', import.meta.url), 'utf8');
   expect(html).not.toMatch(/\sstyle="/);
 });
 
 test('splash height uses svh, not vh', () => {
   // iOS Safari's collapsing address bar makes 100vh wrong on exactly the
   // devices most visitors use.
-  const css = readFileSync(new URL('../../assets/css/style.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../docs/assets/css/style.css', import.meta.url), 'utf8');
   expect(css).toContain('100svh');
   expect(css).not.toMatch(/height:\s*100vh/);
 });

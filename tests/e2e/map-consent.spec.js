@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /* The contact block ships a static OpenStreetMap image and upgrades to Google's
    interactive embed on click. That click is the consent action, so no cookie
-   banner is needed. See docs/decisions/0002-static-map-preview.md.
+   banner is needed. See documentation/decisions/0002-static-map-preview.md.
 
    The no-cookies-before-consent assertions below are a LEGAL guarantee, not a
    performance preference. Do not weaken them. If one fails, the page started

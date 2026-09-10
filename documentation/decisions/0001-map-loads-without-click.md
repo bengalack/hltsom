@@ -3,7 +3,7 @@
 **Date:** 2026-09-09
 **Status:** Accepted
 **Supersedes:** Decision D6, and the consent guarantee in §10, of
-`docs/superpowers/specs/2026-09-09-hltsom-website-design.md`
+`documentation/superpowers/specs/2026-09-09-hltsom-website-design.md`
 
 ## Context
 

@@ -5,13 +5,13 @@
 > a description of the current site, and it is not a document to work from now.
 >
 > Parts of it have since been reversed. In particular Task 8 describes a **click-to-load map**
-> that no longer exists — see `docs/decisions/0001-map-loads-without-click.md`. The menu is now
+> that no longer exists — see `documentation/decisions/0001-map-loads-without-click.md`. The menu is now
 > a dropdown on desktop, the carousel uses four photographs with deferred loading, and the
 > colour tokens have changed.
 >
 > **For the current design, read
-> `docs/superpowers/specs/2026-09-09-hltsom-website-design.md` plus every ADR in
-> `docs/decisions/`.**
+> `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md` plus every ADR in
+> `documentation/decisions/`.**
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -21,7 +21,7 @@
 
 **Tech Stack:** HTML5, plain CSS (custom properties, Grid, Flexbox), vanilla JS, self-hosted woff2 fonts, GitHub Pages, Playwright (tests only).
 
-**Spec:** `docs/superpowers/specs/2026-09-09-hltsom-website-design.md`
+**Spec:** `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md`
 
 ## Global Constraints
 
@@ -56,8 +56,8 @@ Every task's requirements implicitly include this section. Values are copied ver
 | `assets/fonts/*.woff2` | Self-hosted Inter + Cormorant Infant |
 | `assets/img/*.svg` | Placeholder imagery until real photography exists |
 | `robots.txt`, `sitemap.xml` | Crawl directives |
-| `docs/decisions/README.md` | How to write an ADR |
-| `docs/image-spec.md` | Per-slot photo requirements and the `<picture>` swap recipe |
+| `documentation/decisions/README.md` | How to write an ADR |
+| `documentation/image-spec.md` | Per-slot photo requirements and the `<picture>` swap recipe |
 | `tools/optimize-images.md` | How to export a new photo without adding repo dependencies |
 | `tests/package.json` | Isolated Playwright + static-server deps |
 | `tests/playwright.config.js` | Serves the repo root on port 5173 |
@@ -239,11 +239,11 @@ git commit -m "feat: add page skeleton and isolated Playwright harness"
 ## Task 2: Governance documents
 
 **Files:**
-- Create: `CLAUDE.md`, `README.md`, `docs/decisions/README.md`, `docs/image-spec.md`, `tools/optimize-images.md`
+- Create: `CLAUDE.md`, `README.md`, `documentation/decisions/README.md`, `documentation/image-spec.md`, `tools/optimize-images.md`
 - Test: `tests/e2e/governance.spec.js`
 
 **Interfaces:**
-- Consumes: the spec at `docs/superpowers/specs/2026-09-09-hltsom-website-design.md`
+- Consumes: the spec at `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md`
 - Produces: `CLAUDE.md`, which every future agent session loads automatically. This is the task that makes the whole decision-storage scheme actually work.
 
 - [ ] **Step 1: Write the failing test**
@@ -261,8 +261,8 @@ const read = (p) => readFileSync(resolve(repoRoot, p), 'utf8');
 
 test('CLAUDE.md exists and points at the spec and the ADR folder', () => {
   const md = read('CLAUDE.md');
-  expect(md).toContain('docs/superpowers/specs/2026-09-09-hltsom-website-design.md');
-  expect(md).toContain('docs/decisions/');
+  expect(md).toContain('documentation/superpowers/specs/2026-09-09-hltsom-website-design.md');
+  expect(md).toContain('documentation/decisions/');
 });
 
 test('CLAUDE.md states the six load-bearing constraints', () => {
@@ -280,7 +280,7 @@ test('CLAUDE.md states the six load-bearing constraints', () => {
 });
 
 test('supporting docs exist', () => {
-  for (const p of ['docs/decisions/README.md', 'docs/image-spec.md', 'tools/optimize-images.md', 'README.md']) {
+  for (const p of ['documentation/decisions/README.md', 'documentation/image-spec.md', 'tools/optimize-images.md', 'README.md']) {
     expect(existsSync(resolve(repoRoot, p))).toBe(true);
   }
 });
@@ -302,8 +302,8 @@ Expected: FAIL with `ENOENT: no such file or directory ... CLAUDE.md`.
 One-page website for a tailoring business in Bærum, Norway.
 
 **Before changing anything, read:**
-1. `docs/superpowers/specs/2026-09-09-hltsom-website-design.md` — the living design spec
-2. `docs/decisions/` — ADRs recording anything that later reversed the spec
+1. `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md` — the living design spec
+2. `documentation/decisions/` — ADRs recording anything that later reversed the spec
 
 ## Load-bearing constraints
 
@@ -324,7 +324,7 @@ These look like things worth "fixing". They are not. Each was decided deliberate
 - Ordinary iteration (content, wording, spacing, timings, a new service, a swapped photo):
   edit the spec in place. No ceremony.
 - Reversing a decision above, or adding a lasting constraint: write an ADR in
-  `docs/decisions/`, then edit the spec to match and link the ADR.
+  `documentation/decisions/`, then edit the spec to match and link the ADR.
 
 ## Testing
 
@@ -333,7 +333,7 @@ cd tests && npm install && npx playwright test
 ```
 ```
 
-- [ ] **Step 4: Write `docs/decisions/README.md`**
+- [ ] **Step 4: Write `documentation/decisions/README.md`**
 
 ```markdown
 # Architecture Decision Records
@@ -365,7 +365,7 @@ What this costs, and what now becomes possible or impossible.
 After writing an ADR, edit the spec so it describes the new reality, and link back here.
 ```
 
-- [ ] **Step 5: Write `docs/image-spec.md`**
+- [ ] **Step 5: Write `documentation/image-spec.md`**
 
 ```markdown
 # Image specification
@@ -430,7 +430,7 @@ magick input.jpg -resize 2400x2400\> -quality 75 name.webp
 magick input.jpg -resize 2400x2400\> -quality 78 -strip name.jpg
 ```
 
-Commit all three. Then follow the swap steps in `docs/image-spec.md`.
+Commit all three. Then follow the swap steps in `documentation/image-spec.md`.
 ```
 
 - [ ] **Step 7: Write `README.md`**
@@ -462,7 +462,7 @@ Push to `main`. GitHub Pages serves the repository root.
 
 ## Before you change anything
 
-Read `CLAUDE.md`, then `docs/superpowers/specs/2026-09-09-hltsom-website-design.md`.
+Read `CLAUDE.md`, then `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md`.
 ```
 
 - [ ] **Step 8: Run the tests to verify they pass**
@@ -1389,7 +1389,7 @@ Replace `#tjenester` and `#om` in `index.html`. The copy is Norwegian placeholde
     <section id="tjenester" class="block block--light">
       <div class="split">
         <div class="split__media">
-          <!-- PLASSHOLDER: se docs/image-spec.md for bytte til ekte foto -->
+          <!-- PLASSHOLDER: se documentation/image-spec.md for bytte til ekte foto -->
           <picture>
             <img src="assets/img/tjenester.svg" width="800" height="1000"
                  alt="Plassholderbilde: skredderarbeid" loading="lazy" decoding="async">
@@ -1417,7 +1417,7 @@ Replace `#tjenester` and `#om` in `index.html`. The copy is Norwegian placeholde
     <section id="om" class="block block--light">
       <div class="split">
         <div class="split__media">
-          <!-- PLASSHOLDER: se docs/image-spec.md -->
+          <!-- PLASSHOLDER: se documentation/image-spec.md -->
           <picture>
             <img src="assets/img/om.svg" width="800" height="1000"
                  alt="Plassholderbilde: portrett av skredderen" loading="lazy" decoding="async">
@@ -2044,7 +2044,7 @@ Immediately before `</body>`, after the `main.js` tag. It stays commented until 
 ```html
   <!-- Cloudflare Web Analytics — cookieless, no consent banner needed.
        Uncomment and paste the real token once the free Cloudflare account exists.
-       See docs/superpowers/specs/2026-09-09-hltsom-website-design.md §13.
+       See documentation/superpowers/specs/2026-09-09-hltsom-website-design.md §13.
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
           data-cf-beacon='{"token": "REPLACE_WITH_TOKEN"}'></script>
   -->
@@ -2167,7 +2167,7 @@ git push origin main
 
 - [ ] **Step 7: Update the spec status**
 
-Change the `Status:` line at the top of `docs/superpowers/specs/2026-09-09-hltsom-website-design.md` to `Implemented — placeholder content and imagery pending` and commit.
+Change the `Status:` line at the top of `documentation/superpowers/specs/2026-09-09-hltsom-website-design.md` to `Implemented — placeholder content and imagery pending` and commit.
 
 ---
 
@@ -2175,7 +2175,7 @@ Change the `Status:` line at the top of `docs/superpowers/specs/2026-09-09-hltso
 
 These are tracked in spec §13 (Open items) and §14 (Domain switch-over), and are deliberately out of scope because they depend on things that do not exist yet:
 
-- **Real photography, logo and copy.** Everything ships as marked placeholders. `docs/image-spec.md` makes the swap mechanical.
+- **Real photography, logo and copy.** Everything ships as marked placeholders. `documentation/image-spec.md` makes the swap mechanical.
 - **Responsive `<picture>` sources.** AVIF/WebP `<source>` lines cannot be written before real photos exist; the `<picture>` wrappers are already in place so adding them is a one-line insert.
 - **Cloudflare Web Analytics activation.** The snippet is committed, commented, awaiting a token.
 - **The `hltsom.no` move.** Spec §14 holds the exact checklist. The domain is not registered yet.
