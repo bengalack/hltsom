@@ -443,7 +443,16 @@ html { scroll-behavior: smooth; }
 }
 .site-footer p { margin: 0; line-height: 2; }
 .site-footer a { text-decoration: none; border-bottom: 1px solid var(--accent); }
-.site-footer span { padding: 0 var(--space-2); opacity: .4; }
+/* Each detail stays whole; the line may only wrap BETWEEN details, at a
+   separator. The hard spaces in the markup do most of the work, but they are
+   not sufficient on their own: a hyphen is its own break opportunity, so
+   "E-post:" was breaking after the "E-" no matter how the spaces were written.
+   nowrap covers spaces and hyphens alike. */
+.site-footer__part { white-space: nowrap; }
+
+/* Scoped to the separator on purpose. A bare `.site-footer span` would also
+   catch the .site-footer__part wrappers and dim the details to 40%. */
+.site-footer__sep { padding: 0 var(--space-2); opacity: .4; }
 
 /* ---------- parallax ----------
    Outgoing block travels at half scroll speed; the incoming block moves

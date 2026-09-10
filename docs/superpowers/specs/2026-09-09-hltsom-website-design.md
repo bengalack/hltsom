@@ -137,6 +137,27 @@ Black, light text, horizontally centred, one line (wrapping on narrow screens):
 Organisasjonsnummer: xxx xxx xxx | E-post: xxx@yyy.no | Telefon: 00 99 88 77
 ```
 
+**Requirement: each detail must stay whole on one line.** The footer holds three separate pieces
+of information — the organisation number, the email and the telephone number. On a narrow screen
+the line has to wrap, and it may only wrap **between** details, at a separator. An individual
+detail must never be split across two lines: not "Organisasjonsnummer:" on one line and the
+number on the next, and not a phone number broken across the middle.
+
+Each detail is wrapped in `.site-footer__part` and held together two ways, both needed:
+
+- **Hard spaces (`&nbsp;`) inside each detail**, including inside the numbers themselves —
+  `000&nbsp;000&nbsp;000` and `00&nbsp;99&nbsp;88&nbsp;77`.
+- **`white-space: nowrap` on the wrapper.** Hard spaces alone are not sufficient: a hyphen is its
+  own break opportunity, so "E-post:" broke after the "E-" regardless of how the spaces were
+  written. This was observed on a real phone.
+
+The separators are `.site-footer__sep`, and the dimming applies to them alone — a bare
+`.site-footer span` rule would also fade the details to 40%.
+
+A test asserts each part occupies exactly one line, counting distinct line positions rather than
+client rects: an inline element containing a link reports several rects on a single line, so
+counting rects reports wrapping that is not there.
+
 ### 3.6 Mobile stacking
 
 Blocks 2–4 alternate image-side on desktop. On mobile everything stacks:
