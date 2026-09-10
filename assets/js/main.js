@@ -159,38 +159,6 @@ function initMap() {
 
 initMap();
 
-/* How far a block may lag before it starts burying its own text.
-
-   A lagging block slides down over whatever follows it. True half speed asks it
-   to lag by half its own height, which is far more than the empty space beneath
-   its content — measured at 163-434px of readable text disappearing under the
-   arriving block. So the lag is capped at the block's real slack: the gap
-   between its deepest content and its own bottom edge.
-
-   Measured once at load and on resize, never per frame, and with the transform
-   removed so the measurement cannot feed on itself. */
-function measureSlack(el) {
-  const previous = el.style.transform;
-  el.style.transform = 'none';
-
-  const bottom = el.getBoundingClientRect().bottom;
-  let deepest = -Infinity;
-  for (const node of el.querySelectorAll('h1, h2, p, li, img, iframe, .map')) {
-    // Decorative imagery does not count. The splash carousel slides fill the
-    // whole block, so counting them would report zero slack and disable the
-    // effect exactly where it matters most. They are aria-hidden precisely
-    // because they carry no meaning — covering their lower edge is harmless,
-    // covering the wordmark or the tagline is not.
-    if (node.closest('[aria-hidden="true"]')) continue;
-    const rect = node.getBoundingClientRect();
-    if (rect.height > 0) deepest = Math.max(deepest, rect.bottom);
-  }
-
-  el.style.transform = previous;
-  if (deepest === -Infinity) return 0;
-  return Math.max(0, bottom - deepest - 4);   // 4px so nothing grazes the edge
-}
-
 /* ---------- parallax ----------
    Outgoing blocks travel at roughly half scroll speed; incoming blocks at 1x.
 
@@ -211,31 +179,23 @@ function measureSlack(el) {
    function — a test forbids it, because that is precisely the bug.
    See docs/decisions/0004-parallax-in-javascript.md. */
 function initParallax() {
-  /* Every block EXCEPT the last one.
+  /* EVERY block, the last one included, at full strength.
 
-     A lagging block slides down over whatever follows it, which is the effect:
-     the next block arrives over it. The last block has only the footer beneath
-     it, and the footer cannot parallax — it is far shorter than the viewport,
-     so it has no exit phase. If the last block lagged, it would drift relative
-     to the footer, and on mobile that is plainly visible: the page scrolls far
-     enough for the last block to animate, and rubber-band overscroll at the
-     bottom exaggerates it further. Keeping the last block static is what holds
-     the footer attached to it. */
-  const all = Array.from(
+     Two "improvements" were tried here and both were wrong. Excluding the last
+     block held the footer still but cost the effect on block 4. Capping the lag
+     to the space beneath each block's content stopped the arriving block
+     covering text, but reduced blocks 2 and 3 to a 92px twitch. The parallax is
+     the point; both were reverted. See §5 of the spec for what that costs. */
+  const blocks = Array.from(
     document.querySelectorAll('#splash, #tjenester, #kontakt, #om')
   );
-  const blocks = all.slice(0, -1).map((el) => ({ el, slack: 0 }));
   if (blocks.length === 0) return;
-
-  const remeasure = () => {
-    for (const block of blocks) block.slack = measureSlack(block.el);
-  };
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   let ticking = false;
 
   const clear = () => {
-    for (const block of blocks) block.el.style.transform = '';
+    for (const el of blocks) el.style.transform = '';
   };
 
   const update = () => {
@@ -251,18 +211,14 @@ function initParallax() {
     const travel = Number.isFinite(factor) ? factor : 0.5;
     const y = window.scrollY;
 
-    for (const block of blocks) {
-      const el = block.el;
+    for (const el of blocks) {
       const height = el.offsetHeight;
       if (height === 0) continue;
       // 0 while the block is fully in view, 1 once it has completely left the top
       let progress = (y - el.offsetTop) / height;
       progress = progress < 0 ? 0 : progress > 1 ? 1 : progress;
-
-      // capped so the arriving block never covers text that is still on screen
-      const offset = Math.min(progress * height * travel, block.slack);
       el.style.transform =
-        offset === 0 ? '' : `translate3d(0, ${offset.toFixed(2)}px, 0)`;
+        progress === 0 ? '' : `translate3d(0, ${(progress * height * travel).toFixed(2)}px, 0)`;
     }
   };
 
@@ -270,14 +226,10 @@ function initParallax() {
     if (!ticking) { ticking = true; requestAnimationFrame(update); }
   };
 
-  const onResize = () => { remeasure(); request(); };
-
   window.addEventListener('scroll', request, { passive: true });
-  window.addEventListener('resize', onResize);
-  window.addEventListener('load', onResize);   // fonts and images change the slack
+  window.addEventListener('resize', request);
   reduce.addEventListener('change', update);
 
-  remeasure();
   update();
 }
 

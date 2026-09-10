@@ -217,23 +217,34 @@ while looking entirely plausible in code review. This trap survives the move to 
 height of scrolling, so displacing it by `height × factor` leaves it at `(1 − factor)` of scroll
 speed: `--parallax-factor: .5` means literally half speed.
 
-**The lag is capped at each block's slack, and this cap is not optional.** A lagging block slides
-down over whatever follows it — that is the effect. True half speed asks a block to lag by half
-its own height, which is far more than the empty space beneath its content: measured at 163–434px
-of readable text disappearing under the arriving block, depending on viewport. Blocks 2 and 3
-carry only ~96px of dead space, so their lag is capped there.
+### 5.1 Known trade-offs — do not "fix" these by weakening the effect
 
-An effect that hides the text is not a feature, so readability wins. The consequence is that
-blocks 2 and 3 lag for about 92px and then resume normal speed, while the splash — whose only
-real content is the wordmark and tagline, centred, with the carousel behind them decorative —
-keeps 269–385px of lag at a true 0.5×.
+The parallax is a headline feature of this site. Two attempts to constrain it were made and
+**both were reverted at the owner's instruction**, because each traded the effect for a
+secondary concern. If either looks like an obvious improvement, read this first.
 
-Decorative imagery is excluded from the slack measurement (`[aria-hidden="true"]`). Counting the
-splash slides, which fill the whole block, would report zero slack and disable the effect exactly
-where it works best.
+**1. The last block lags away from the footer.** Block 4 travels downward as it exits, so the
+distance between it and the footer changes, and on mobile — where the page is long enough for
+block 4 to animate, and rubber-band overscroll adds more — it is visible.
 
-**To strengthen the effect on blocks 2 and 3, give them more bottom padding.** The cap follows
-the slack automatically, so extra space below the content converts directly into more lag.
+*Tried:* freezing block 4 so the footer stayed attached. *Rejected:* it removed the effect from
+a quarter of the page. The footer still carries `z-index: 5` so it is never painted over, and a
+test still asserts the footer never moves in the document and that no gap opens above it.
+
+**2. An arriving block covers the tail of the one it is replacing.** True half speed asks a
+block to lag by half its own height, which is far more than the empty space beneath its content
+— measured at 163–434px of readable text disappearing under the arriving block, worst on mobile
+and small windows where blocks are tallest.
+
+*Tried:* capping the lag to the space under each block's content. *Rejected:* it reduced blocks
+2 and 3 to a ~92px twitch, which reads as no parallax at all. There is no middle setting: these
+blocks carry ~96px of slack against the 300–530px half speed demands, so any cap that protects
+the text also destroys the effect.
+
+**If this needs solving properly**, the honest routes are structural rather than a smaller
+number: move the parallax to the imagery inside each block instead of the block itself, or give
+the blocks far more bottom padding so the lag has somewhere to go. Both change the design and
+belong in a conversation with the owner, not in a quiet tweak.
 
 **The ratio is now uniform.** Measured −0.50/−0.51/−0.51 on a 1440×900 desktop and
 −0.50/−0.51/−0.51/−0.55 on a Pixel 7. The earlier CSS implementation drifted between −0.22 and

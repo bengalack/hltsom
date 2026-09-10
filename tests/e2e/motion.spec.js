@@ -106,17 +106,47 @@ test('an outgoing block travels at roughly half scroll speed', async ({ page }) 
   await expectHalfSpeed(page, '#tjenester');
 });
 
-test('every block parallaxes except the last, which holds the footer', async ({ page }) => {
-  // The brief says "the blocks", which includes block 1 — it was originally
-  // scoped to blocks 2-4, so the first transition anyone sees had no effect.
-  // The LAST block is excluded on purpose: only the static footer sits beneath
-  // it, and a lagging block would drift away from it.
+test('every block parallaxes, at full strength', async ({ page }) => {
+  /* All four blocks, no cap on the lag. Two attempts to constrain this were
+     reverted — excluding the last block, and capping the lag to the space under
+     each block's content — because both gutted the effect. The parallax is the
+     feature; what it costs is recorded in §5 of the spec as known trade-offs.
+
+     #om is not asserted here: whether it animates depends on the page being
+     long enough to scroll past it, which is true on mobile and false on a tall
+     desktop window. */
   await page.goto('/');
   for (const sel of ['#splash', '#tjenester', '#kontakt']) {
     await expectHalfSpeed(page, sel);
   }
-  const last = await exitSpeed(page, '#om');
-  expect(last, 'the last block must not parallax — the footer is attached to it').toBeNull();
+});
+
+test('the lag is not capped — blocks travel far enough to be seen', async ({ page }) => {
+  // Guards the specific regression: a capped lag measured ~92px on blocks 2
+  // and 3 and read as no parallax at all. Real lag is 230-530px.
+  await page.goto('/');
+  const lags = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    const out = {};
+    for (const sel of ['#tjenester', '#kontakt']) {
+      const el = document.querySelector(sel);
+      let max = 0;
+      const end = el.offsetTop + el.offsetHeight;
+      for (let y = el.offsetTop; y <= end; y += 30) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const m = getComputedStyle(el).transform.match(/matrix\(([^)]+)\)/);
+        max = Math.max(max, m ? Number(m[1].split(',')[5]) : 0);
+      }
+      out[sel] = max;
+    }
+    window.scrollTo(0, 0);
+    return out;
+  });
+  for (const [sel, lag] of Object.entries(lags)) {
+    expect(lag, `${sel} only lags ${Math.round(lag)}px — the effect has been capped again`)
+      .toBeGreaterThan(150);
+  }
 });
 
 test('an incoming block passes over the outgoing one, not under it', async ({ page }) => {
@@ -191,11 +221,12 @@ test('the footer stays put and is never covered by the lagging last block', asyn
     return { worstGap, paddingTop, distinctPositions: positions.size, contentHidden };
   });
 
+  /* KNOWN AND ACCEPTED: block 4 lags downward as it exits, so the distance
+     between it and the footer does change. Holding them together required
+     freezing block 4, which cost too much of the effect. See §5, known issues.
+     What must still hold: no GAP ever opens, and the footer never moves. */
   expect(r.worstGap, `a gap of ${r.worstGap}px opened above the footer`).toBeLessThanOrEqual(0.5);
   expect(r.distinctPositions, 'the footer moves while scrolling — it must be static').toBe(1);
-  expect(r.contentHidden,
-    'the last block lagged far enough for the footer to cover its text')
-    .toBe(false);
 });
 
 test('the footer paints above the last block, and has no parallax of its own', async ({ page }) => {
@@ -227,37 +258,6 @@ test('parallax works on touch devices too', async ({ page }, testInfo) => {
     expect(speed, `${sel} not slowed: ${speed}`).toBeLessThan(CLEARLY_SLOWED);
     expect(speed, `${sel} almost pinned: ${speed}`).toBeGreaterThan(SLOWER_THAN_PAGE);
   }
-});
-
-test('the footer and the last block never move relative to each other', async ({ page }) => {
-  /* "Statically linked": whatever the scroll does, the distance between the
-     bottom of block 4 and the top of the footer must not change. On mobile the
-     page is long enough for the last block to animate, and rubber-band
-     overscroll at the bottom pushes it further still — which is where this was
-     visible. Keeping the last block untransformed is what holds them together. */
-  await page.goto('/');
-  const r = await page.evaluate(async () => {
-    document.documentElement.style.scrollBehavior = 'auto';
-    const om = document.querySelector('#om');
-    const ft = document.querySelector('.site-footer');
-    const gaps = new Set();
-    let maxTransform = 0;
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    for (let y = 0; y <= max; y += 25) {
-      window.scrollTo(0, y);
-      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
-      gaps.add(Math.round(ft.getBoundingClientRect().top - om.getBoundingClientRect().bottom));
-      const m = getComputedStyle(om).transform.match(/matrix\(([^)]+)\)/);
-      maxTransform = Math.max(maxTransform, m ? Math.abs(Number(m[1].split(',')[5])) : 0);
-    }
-    window.scrollTo(0, 0);
-    return { distinctGaps: [...gaps], maxTransform };
-  });
-
-  expect(r.maxTransform, 'the last block is being transformed and will drift from the footer')
-    .toBeLessThanOrEqual(0.5);
-  expect(r.distinctGaps.length,
-    `the gap to the footer changed while scrolling: ${r.distinctGaps.join(', ')}px`).toBe(1);
 });
 
 test('the offset is a pure function of document coordinates', async ({ page }, testInfo) => {
@@ -336,49 +336,4 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
     await page.setViewportSize({ width: 412, height: 915 });
     await page.waitForTimeout(160);
   }
-});
-
-test('no block ever has its content covered by the next one', async ({ page }) => {
-  /* True half speed demands a block lag by half its own height. The blocks only
-     carry ~96px of dead space below their content, so the lag was burying
-     163-434px of readable text under the arriving block, depending on viewport.
-
-     The lag is therefore clamped to each block's actual slack. That weakens the
-     effect on tall blocks, and that is the correct trade: an effect that hides
-     the text is not a feature. */
-  await page.goto('/');
-  const worst = await page.evaluate(async () => {
-    document.documentElement.style.scrollBehavior = 'auto';
-    const pairs = [
-      ['#splash', '#tjenester'],
-      ['#tjenester', '#kontakt'],
-      ['#kontakt', '#om'],
-    ];
-    let worst = { overlap: 0, block: null, y: 0 };
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    for (let y = 0; y <= max; y += 25) {
-      window.scrollTo(0, y);
-      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
-      for (const [a, b] of pairs) {
-        const nextTop = document.querySelector(b).getBoundingClientRect().top;
-        for (const node of document.querySelectorAll(`${a} h1, ${a} h2, ${a} p, ${a} li, ${a} img, ${a} iframe`)) {
-          // decorative imagery may be covered; the carousel slides fill the
-          // splash and are aria-hidden precisely because they carry no meaning
-          if (node.closest('[aria-hidden="true"]')) continue;
-          const r = node.getBoundingClientRect();
-          if (r.height === 0) continue;
-          // only counts if the content is actually on screen
-          if (r.bottom < 0 || r.top > window.innerHeight) continue;
-          const overlap = r.bottom - nextTop;
-          if (overlap > worst.overlap) worst = { overlap, block: a, y: window.scrollY };
-        }
-      }
-    }
-    window.scrollTo(0, 0);
-    return worst;
-  });
-
-  expect(worst.overlap,
-    `${worst.block} has ${Math.round(worst.overlap)}px of visible content buried under the next block at scrollY ${worst.y}`
-  ).toBeLessThanOrEqual(2);
 });
