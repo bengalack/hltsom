@@ -64,9 +64,9 @@ spec records why.
   plain anchors.
 - **Blocks carry explicit `z-index: 1..4`, the footer `5`.** With JavaScript only the moving
   block has a transform, so without these an exiting block paints over the one arriving.
-- **The footer never parallaxes, and carries `position: relative; z-index: 1`.** It is shorter
-  than the viewport so there is no exit phase to animate, and the z-index is what stops the
-  lagging last block sliding over it (57px on a phone). It must stay static while scrolling.
+- **The footer never parallaxes.** It is shorter than the viewport, so there is no exit phase to
+  animate, and its `z-index: 5` is what stops the lagging last block sliding over it (57px on a
+  phone). It must stay static while scrolling — a test asserts it holds one document position.
 - **The parallax runs at full strength on all four blocks, and must stay that way.** Freezing
   the last block to hold the footer was tried and reverted by the owner: it removed the effect
   from a quarter of the page. Block 4 drifting from the footer is an accepted cost (spec §5.2).

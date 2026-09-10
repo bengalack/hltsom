@@ -572,6 +572,17 @@ above all the privacy guarantee, which is a legal obligation rather than a prefe
 - Burger overlay: opens, traps focus, closes on Escape, restores focus, `aria-expanded` correct
 - Carousel advances, and holds still under `prefers-reduced-motion`
 - Parallax and smooth scroll disabled under `prefers-reduced-motion`
+- **Parallax speed**: every block holds −0.5× for more than 90% of its travel, and the speed
+  never steps by more than 0.1 between samples. These two together catch both failure shapes —
+  a clamp that snaps, and an ease that drifts off target
+- **Parallax timing**: an arriving block never reaches the previous one's text before 40% into
+  the block. Covering is expected; covering early is the defect that was reported
+- **Parallax offset is a pure function of document coordinates**, and `initParallax` never reads
+  `innerHeight`, `clientHeight`, `visualViewport` or `getBoundingClientRect` — that dependency is
+  what made blocks jump on a real phone (ADR 0004)
+- The lagging block never opens a gap above the footer, and the footer never moves
+- In-page links land on their target in one click (they scroll to `offsetTop`, not via the
+  browser's anchor jump, which resolves against the transformed position)
 - Menu is a dropdown on desktop and a full-screen takeover on mobile, with scroll-lock on the
   takeover only
 - Only the first carousel slide is fetched with the page
