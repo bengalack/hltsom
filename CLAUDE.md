@@ -67,13 +67,15 @@ spec records why.
 - **The footer never parallaxes, and carries `position: relative; z-index: 1`.** It is shorter
   than the viewport so there is no exit phase to animate, and the z-index is what stops the
   lagging last block sliding over it (57px on a phone). It must stay static while scrolling.
-- **The parallax runs at FULL strength on all four blocks, and must stay that way.** Two
-  constraints were tried and both were reverted by the owner: freezing the last block to hold
-  the footer, and capping the lag to the space under each block's content. Each fixed a real
-  secondary problem and each gutted the effect — the cap left blocks 2 and 3 lagging 92px, which
-  reads as no parallax at all. The known costs (footer drift, arriving blocks covering the tail
-  of the previous one) are documented in spec §5.1 as accepted. Do not re-introduce either
-  constraint; if it must be solved, it is a design conversation, not a tweak.
+- **The parallax runs at full strength on all four blocks, and must stay that way.** Freezing
+  the last block to hold the footer was tried and reverted by the owner: it removed the effect
+  from a quarter of the page. Block 4 drifting from the footer is an accepted cost (spec §5.2).
+- **The big bottom padding on `.block` is runway for the parallax, not decoration.** The lag
+  pushes content down into it and the arriving block eats it; without it, a lagging block buries
+  the next screen of text — the services list was unreadable on a real phone. `--parallax-runway`
+  is the knob: raise it and the effect strengthens, lower it and the effect weakens. Never remove
+  the cap in `main.js` that keeps the lag inside the runway, and never trim the padding as
+  "unused whitespace". See spec §5.1.
 - **The parallax offset is POSITIVE.** It looks inverted and is not: a block has to lag the
   page to appear slower. A negative value drags it along with the scroll and it leaves *faster*
   than normal — measured at -1.17x, which reads as "the parallax is broken". A test measures

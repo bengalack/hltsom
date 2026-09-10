@@ -243,67 +243,46 @@ while looking entirely plausible in code review. This trap survives the move to 
 height of scrolling, so displacing it by `height × factor` leaves it at `(1 − factor)` of scroll
 speed: `--parallax-factor: .5` means literally half speed.
 
-### 5.1 Known trade-offs — do not "fix" these by weakening the effect
+### 5.1 Runway: how the effect stays out of the way of the text
 
-The parallax is a headline feature of this site. Two attempts to constrain it were made and
-**both were reverted at the owner's instruction**, because each traded the effect for a
-secondary concern. If either looks like an obvious improvement, read this first.
+A lagging block slides down over whatever follows it, and **the next block arrives on schedule
+regardless** — its position comes from layout, not from the lag. So the lag pushes a block's
+content down into the space the arriving block is about to occupy, and the amount of text hidden
+is roughly the size of the lag.
 
-**1. The last block lags away from the footer.** Block 4 travels downward as it exits, so the
-distance between it and the footer changes, and on mobile — where the page is long enough for
-block 4 to animate, and rubber-band overscroll adds more — it is visible.
+This was reported from a real phone: the services list half-buried under the arriving contact
+block, with the visitor unable to read what was on offer.
 
-*Tried:* freezing block 4 so the footer stayed attached. *Rejected:* it removed the effect from
-a quarter of the page. The footer still carries `z-index: 5` so it is never painted over, and a
-test still asserts the footer never moves in the document and that no gap opens above it.
+**The fix is runway, not a smaller effect.** Each content block carries `--parallax-runway`
+(240px) of empty space below its content, on top of its normal padding. The lag moves into that
+space and the arriving block eats it, so nothing readable is ever covered. The lag is then capped
+at whatever runway actually exists.
 
-**2. An arriving block covers the tail of the one it is replacing.** True half speed asks a
-block to lag by half its own height, which is far more than the empty space beneath its content
-— measured at 163–434px of readable text disappearing under the arriving block, worst on mobile
-and small windows where blocks are tallest.
+**The runway is measured, not assumed.** `measureRunway()` in `main.js` takes the distance from a
+block's deepest content to its own bottom edge, once at load and on resize — never per frame, and
+with the transform removed so the measurement cannot feed on itself. A fixed number would be
+right at one viewport and wrong at the next: the splash's runway is its centring, which scales
+with its own height. Decorative imagery (`[aria-hidden="true"]`) is excluded — the carousel
+slides fill the splash, and counting them would report no runway at all.
 
-*Tried:* capping the lag to the space under each block's content. *Rejected:* it reduced blocks
-2 and 3 to a ~92px twitch, which reads as no parallax at all. There is no middle setting: these
-blocks carry ~96px of slack against the 300–530px half speed demands, so any cap that protects
-the text also destroys the effect.
+Measured: −0.50× to −0.53× on every block, with 252–385px of lag and **zero content covered** on
+a Pixel 7, a 900×700 window and a 1440×900 window.
 
-**If this needs solving properly**, the honest routes are structural rather than a smaller
-number: move the parallax to the imagery inside each block instead of the block itself, or give
-the blocks far more bottom padding so the lag has somewhere to go. Both change the design and
-belong in a conversation with the owner, not in a quiet tweak.
+**Which knob to turn.** Raising `--parallax-runway` strengthens the effect, because the cap
+follows it. Lowering it weakens the effect rather than covering text. Both are safe. Removing the
+cap is not: an earlier version ran uncapped and buried 163–434px of text. A separate earlier
+attempt capped the lag *without* adding runway, which left blocks 2 and 3 lagging 92px and reading
+as no parallax at all — that is why the runway exists.
 
-**The ratio is now uniform.** Measured −0.50/−0.51/−0.51 on a 1440×900 desktop and
-−0.50/−0.51/−0.51/−0.55 on a Pixel 7. The earlier CSS implementation drifted between −0.22 and
-−0.62 depending on block height; the document-coordinate model removed that variance.
+### 5.2 Known trade-off — the last block drifts from the footer
 
-**Scope:** all four blocks including the splash, on every device. The splash was originally
-excluded, which left the very first transition a visitor sees with no effect at all.
+Block 4 travels downward as it exits, so the distance between it and the footer changes; on
+mobile, where the page is long enough for block 4 to animate and rubber-band overscroll adds
+more, it is visible.
 
-**Paint order is explicit** (`z-index: 1..4` on the blocks, `5` on the footer). With the CSS
-implementation every block carried an animation and therefore a stacking context, so DOM order
-decided what covered what. With JavaScript only the moving block has a transform, which would
-otherwise make an exiting block paint *over* the one arriving.
-
-**The last block is excluded, and must stay excluded.** A lagging block slides down over
-whatever follows it — that is the effect. Block 4 has only the footer beneath it, and the footer
-cannot parallax: it is far shorter than the viewport, so it has no exit phase. If block 4
-lagged, it would drift away from the footer. On desktop this was invisible because the page is
-too short for block 4 to animate at all; on mobile the page is long enough, and rubber-band
-overscroll at the bottom made it obvious. Keeping block 4 static is *how* the footer stays
-attached to it — a test asserts the distance between them never changes.
-
-**The footer is excluded and must stay excluded.** It is far shorter than the viewport, so
-there is no exit phase to animate. It carries `position: relative; z-index: 1` so the lagging
-last block passes *under* it rather than over it — without that, block 4 slid across the footer
-by up to 57px. The footer must never move while scrolling; a test asserts it holds a single
-document position. `tests/e2e/motion.spec.js`
-measures effective speed rather than asserting the CSS merely exists — an earlier test compared
-computed-transform *strings*, which passed happily against a completely broken implementation.
-That test must also disable `scroll-behavior: smooth` first, or every sample is taken while the
-page is still gliding.
-
-**`prefers-reduced-motion: reduce` disables the carousel (first image holds), the parallax,
-and smooth scrolling.** This is a calm version of the page, not a broken one.
+*Tried:* freezing block 4 so the footer stayed attached. *Rejected by the owner:* it removed the
+effect from a quarter of the page. The footer keeps `z-index: 5` so it is never painted over, and
+tests still assert the footer never moves in the document and that no gap opens above it.
 
 ---
 

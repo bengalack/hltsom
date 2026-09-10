@@ -165,6 +165,39 @@ function initMap() {
 
 initMap();
 
+/* How far a block may lag before it would cover its own text.
+
+   A lagging block slides down over whatever follows it, and the block after it
+   arrives on schedule regardless — so the amount of text hidden is roughly the
+   size of the lag. The runway is the empty space below a block's content
+   (--parallax-runway for the content blocks, the centring for the splash), and
+   the lag is capped there.
+
+   Measured, not taken from a token: the splash's runway depends on its own
+   height, so a fixed number is right at one viewport and wrong at the next.
+   Measured once at load and on resize, never per frame, and with the transform
+   removed so the measurement cannot feed on itself. */
+function measureRunway(el) {
+  const previous = el.style.transform;
+  el.style.transform = 'none';
+
+  const bottom = el.getBoundingClientRect().bottom;
+  let deepest = -Infinity;
+  for (const node of el.querySelectorAll('h1, h2, p, li, img, iframe, .map')) {
+    // Decorative imagery does not count. The carousel slides fill the splash,
+    // so counting them would report no runway at all and disable the effect
+    // exactly where it is strongest. Covering their lower edge is harmless;
+    // covering the wordmark is not.
+    if (node.closest('[aria-hidden="true"]')) continue;
+    const rect = node.getBoundingClientRect();
+    if (rect.height > 0) deepest = Math.max(deepest, rect.bottom);
+  }
+
+  el.style.transform = previous;
+  if (deepest === -Infinity) return Infinity;
+  return Math.max(0, bottom - deepest - 4);   // 4px so nothing grazes the edge
+}
+
 /* ---------- parallax ----------
    Outgoing blocks travel at roughly half scroll speed; incoming blocks at 1x.
 
@@ -194,14 +227,18 @@ function initParallax() {
      the point; both were reverted. See §5 of the spec for what that costs. */
   const blocks = Array.from(
     document.querySelectorAll('#splash, #tjenester, #kontakt, #om')
-  );
+  ).map((el) => ({ el, max: Infinity }));
   if (blocks.length === 0) return;
+
+  const readCaps = () => {
+    for (const block of blocks) block.max = measureRunway(block.el);
+  };
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   let ticking = false;
 
   const clear = () => {
-    for (const el of blocks) el.style.transform = '';
+    for (const block of blocks) block.el.style.transform = '';
   };
 
   const update = () => {
@@ -217,14 +254,17 @@ function initParallax() {
     const travel = Number.isFinite(factor) ? factor : 0.5;
     const y = window.scrollY;
 
-    for (const el of blocks) {
+    for (const block of blocks) {
+      const el = block.el;
       const height = el.offsetHeight;
       if (height === 0) continue;
       // 0 while the block is fully in view, 1 once it has completely left the top
       let progress = (y - el.offsetTop) / height;
       progress = progress < 0 ? 0 : progress > 1 ? 1 : progress;
+
+      const offset = Math.min(progress * height * travel, block.max);
       el.style.transform =
-        progress === 0 ? '' : `translate3d(0, ${(progress * height * travel).toFixed(2)}px, 0)`;
+        offset === 0 ? '' : `translate3d(0, ${offset.toFixed(2)}px, 0)`;
     }
   };
 
@@ -233,9 +273,12 @@ function initParallax() {
   };
 
   window.addEventListener('scroll', request, { passive: true });
-  window.addEventListener('resize', request);
+  const onResize = () => { readCaps(); request(); };
+  window.addEventListener('resize', onResize);
+  window.addEventListener('load', onResize);   // fonts and images change the runway
   reduce.addEventListener('change', update);
 
+  readCaps();
   update();
 }
 

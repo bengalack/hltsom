@@ -337,3 +337,48 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
     await page.waitForTimeout(160);
   }
 });
+
+test('an arriving block never covers text that is still on screen', async ({ page }) => {
+  /* Reported from a real phone: the services list was half-buried under the
+     arriving contact block, so a visitor could not read what was on offer.
+
+     The cause is geometric. The lag pushes a block's content DOWN, while the
+     next block arrives on schedule regardless, so the amount of text hidden is
+     roughly the size of the lag. The fix is runway — empty space below each
+     block's content (--parallax-runway) that the lag can move into and the
+     arriving block can eat — with the lag capped at whatever runway exists.
+
+     Raising --parallax-runway strengthens the effect. Lowering it weakens the
+     effect rather than covering text. Both are safe; removing the cap is not. */
+  await page.goto('/');
+  const worst = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    const pairs = [['#splash', '#tjenester'], ['#tjenester', '#kontakt'], ['#kontakt', '#om']];
+    let worst = { overlap: 0, block: null, y: 0, text: '' };
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    for (let y = 0; y <= max; y += 25) {
+      window.scrollTo(0, y);
+      await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+      for (const [a, b] of pairs) {
+        const nextTop = document.querySelector(b).getBoundingClientRect().top;
+        for (const node of document.querySelectorAll(`${a} h1, ${a} h2, ${a} p, ${a} li, ${a} img, ${a} iframe`)) {
+          // decorative imagery may be covered; the carousel slides fill the splash
+          if (node.closest('[aria-hidden="true"]')) continue;
+          const r = node.getBoundingClientRect();
+          if (r.height === 0) continue;
+          if (r.bottom < 0 || r.top > window.innerHeight) continue;   // off screen
+          const overlap = r.bottom - nextTop;
+          if (overlap > worst.overlap) {
+            worst = { overlap, block: a, y: window.scrollY, text: node.textContent.trim().slice(0, 30) };
+          }
+        }
+      }
+    }
+    window.scrollTo(0, 0);
+    return worst;
+  });
+
+  expect(worst.overlap,
+    `${worst.block} has ${Math.round(worst.overlap)}px of visible content buried at scrollY ${worst.y} ("${worst.text}")`
+  ).toBeLessThanOrEqual(2);
+});

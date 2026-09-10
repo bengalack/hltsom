@@ -26,6 +26,13 @@
   --scrim-top:    rgba(20, 16, 12, .42);
   --scrim-bottom: rgba(20, 16, 12, .62);
 
+  /* Empty space carried below each block's content, purely so the parallax has
+     somewhere to go: the lag pushes content down into it and the arriving block
+     eats it. Raise this and the effect gets stronger automatically, because the
+     lag is capped at whatever runway actually exists. Lower it and the effect
+     shrinks rather than covering text. */
+  --parallax-runway: 240px;
+
   --carousel-interval: 5s;
   --crossfade: 1200ms;
   --parallax-factor: .5;
@@ -105,7 +112,12 @@ h1 {
 a { color: inherit; }
 
 /* ---------- block scaffolding ---------- */
-.block { padding: var(--space-24) var(--space-6); }
+/* The bottom padding is the runway for the parallax, not decoration. It has to
+   be at least --parallax-max, or the arriving block covers text that is still
+   being read. */
+.block {
+  padding: var(--space-24) var(--space-6) calc(var(--space-24) + var(--parallax-runway));
+}
 .block--light { background: var(--paper); color: var(--ink); }
 .block--dark  { background: var(--ink);   color: var(--paper); }
 
