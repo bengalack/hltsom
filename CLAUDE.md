@@ -75,11 +75,13 @@ spec records why.
   the next screen of text — the services list was unreadable on a real phone. `--parallax-runway`
   is the knob: raise it and the effect strengthens, lower it and the effect weakens. Never trim
   the padding as "unused whitespace". See spec §5.1.
-- **The lag approaches the runway exponentially rather than being clamped to it.** `Math.min` is
-  the obvious simplification and it is wrong: a clamp holds the block at half speed and then
-  snaps it back to 1x in one frame, which is plainly visible. The exponential keeps the opening
-  at a true half speed and eases off. A test bounds the speed change between samples at 0.1;
-  a clamp measures 0.28.
+- **The lag is linear to a knee, then eases into the runway.** Two simpler shapes were tried and
+  both were reported as defects: `Math.min` snaps from half speed to normal in one frame (speed
+  step 0.28), and easing from the first pixel never holds the target speed at all. Tests bound
+  the step below 0.1 AND require 300px+ held at target, so both failures fail the suite.
+- **Half speed lasts exactly 2 x runway pixels of scrolling.** If it should last longer, raise
+  `--parallax-runway` — there is no curve that avoids this trade, because the next block arrives
+  on a schedule fixed by layout.
 - **The parallax offset is POSITIVE.** It looks inverted and is not: a block has to lag the
   page to appear slower. A negative value drags it along with the scroll and it leaves *faster*
   than normal — measured at -1.17x, which reads as "the parallax is broken". A test measures

@@ -297,11 +297,19 @@ test('the offset is a pure function of document coordinates', async ({ page }, t
       const actual = m ? Number(m[1].split(',')[5]) : 0;
       const p = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
       const wanted = p * el.offsetHeight * travel;
-      // the block publishes the runway it measured; the offset saturates into it
+      // the block publishes the runway it measured; the offset is linear up to
+      // the knee and then approaches the runway exponentially
       const runway = parseFloat(el.dataset.parallaxRunway);
-      const expected = Number.isFinite(runway)
-        ? runway * (1 - Math.exp(-wanted / runway))
-        : wanted;
+      const KNEE = 0.8;
+      let expected;
+      if (!Number.isFinite(runway)) {
+        expected = wanted;
+      } else {
+        const knee = runway * KNEE;
+        expected = wanted <= knee
+          ? wanted
+          : knee + (runway - knee) * (1 - Math.exp(-(wanted - knee) / (runway - knee)));
+      }
       return { sel, actual, expected };
     });
   });
@@ -422,5 +430,47 @@ test('the parallax eases off smoothly instead of snapping back to normal speed',
     const opening = r.opening.reduce((a, b) => a + b, 0) / r.opening.length;
     expect(opening, `${sel} opens at ${opening.toFixed(2)}, not near half speed`).toBeLessThan(-0.40);
     expect(opening, `${sel} opens at ${opening.toFixed(2)}, not near half speed`).toBeGreaterThan(-0.65);
+  }
+});
+
+test('the target speed is held for a real distance, not just touched', async ({ page }) => {
+  /* "It should be constant around -0.5" — so the effect must SIT at half speed
+     rather than passing through it on the way to normal speed. An earlier
+     version eased from the very first pixel and never held the target at all.
+
+     Half speed can be held for 2 x KNEE x runway pixels of scrolling, because
+     the lag grows by 0.5 per pixel and the text is covered once the lag exceeds
+     the runway. Every pixel of --parallax-runway buys two pixels of half-speed
+     travel. */
+  await page.goto('/');
+  const held = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    const out = {};
+    for (const sel of ['#tjenester', '#kontakt']) {
+      const el = document.querySelector(sel);
+      const samples = [];
+      const end = el.offsetTop + el.offsetHeight;
+      for (let y = el.offsetTop; y <= end; y += 25) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        samples.push({ y: window.scrollY, top: el.getBoundingClientRect().top });
+      }
+      let atTarget = 0;
+      for (let i = 1; i < samples.length; i++) {
+        const dy = samples[i].y - samples[i - 1].y;
+        if (dy <= 0) continue;
+        const speed = (samples[i].top - samples[i - 1].top) / dy;
+        if (speed < -0.45 && speed > -0.56) atTarget += dy;
+      }
+      out[sel] = atTarget;
+    }
+    window.scrollTo(0, 0);
+    return out;
+  });
+
+  for (const [sel, distance] of Object.entries(held)) {
+    expect(distance,
+      `${sel} holds half speed for only ${distance}px — the effect eases out too early`
+    ).toBeGreaterThan(300);
   }
 });

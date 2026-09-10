@@ -3,6 +3,12 @@
    map preview to Google's interactive map on click.
    See docs/decisions/ 0001 and 0002. */
 
+/* How much of a block's runway is spent at the exact target speed before the
+   effect begins easing out of it. 0.8 holds half speed for the great majority
+   of the travel and leaves a short, smooth tail. Raising it toward 1 lengthens
+   the constant phase and sharpens the transition; lowering it does the reverse. */
+const PARALLAX_KNEE = 0.8;
+
 const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -269,19 +275,33 @@ function initParallax() {
       let progress = (y - el.offsetTop) / height;
       progress = progress < 0 ? 0 : progress > 1 ? 1 : progress;
 
-      /* The lag has to stay inside the runway, but it must not simply STOP at
-         the edge of it: a hard clamp holds the block at half speed and then
-         snaps it back to 1x, and the jolt is obvious.
+      /* Hold the target speed for as long as the runway allows, then ease out
+         of it — rather than easing from the very start.
 
-         So it saturates instead. The block starts at a true half speed and
-         eases smoothly toward normal speed as it uses up its runway, never
-         quite reaching it. Exponential approach: the slope is 1 at the start
-         and decays gently, so there is no point at which the speed jumps. */
+         The geometry: the next block's position comes from layout, so it
+         arrives on a fixed schedule. A lag of d pixels puts it d pixels closer
+         to this block's text, and the text is covered once d exceeds the runway
+         R. At half speed d grows by 0.5 per pixel scrolled, so a true half
+         speed can be held for exactly 2R pixels of scrolling. Every pixel of
+         --parallax-runway therefore buys two pixels of half-speed travel.
+
+         So: linear (exactly the target speed) up to KNEE x R, then an
+         exponential approach to R over what remains. The exponential's slope is
+         1 where it starts, so it takes over from the linear part with no change
+         in speed at all — the transition is invisible, unlike the hard clamp
+         this replaced, which snapped from half speed to normal in one frame. */
       const wanted = progress * height * travel;
       const runway = block.max;
-      const offset = Number.isFinite(runway)
-        ? runway * (1 - Math.exp(-wanted / runway))
-        : wanted;
+
+      let offset;
+      if (!Number.isFinite(runway)) {
+        offset = wanted;
+      } else {
+        const knee = runway * PARALLAX_KNEE;
+        offset = wanted <= knee
+          ? wanted
+          : knee + (runway - knee) * (1 - Math.exp(-(wanted - knee) / (runway - knee)));
+      }
 
       el.style.transform =
         offset < 0.01 ? '' : `translate3d(0, ${offset.toFixed(2)}px, 0)`;

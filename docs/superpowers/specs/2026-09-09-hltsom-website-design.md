@@ -258,19 +258,35 @@ block, with the visitor unable to read what was on offer.
 space and the arriving block eats it, so nothing readable is ever covered. The lag is then capped
 at whatever runway actually exists.
 
-**The lag saturates into the runway; it does not stop at the edge of it.** A hard clamp holds a
-block at half speed and then returns it to 1× in a single frame, and the jolt is obvious — it was
-reported as "it works for some pixels and then stops". Instead the offset approaches the runway
-exponentially: `runway × (1 − e^(−wanted/runway))`. The slope is 1 at the start, so the block
-opens at a true half speed, and decays gently toward normal speed as the runway is used up. It
-never quite reaches the runway, which also removes any need for a safety margin.
+**How long half speed can last, exactly.** The next block's position comes from layout, so it
+arrives on a fixed schedule. A lag of `d` pixels puts it `d` pixels closer to this block's text,
+and the text is covered once `d` exceeds the runway `R`. At half speed `d` grows by 0.5 per pixel
+scrolled, so:
 
-Measured speed change between samples: **0.018** with the exponential approach, against **0.28**
-with a hard clamp (a true discontinuity of 0.5, blunted by sampling). A test bounds this at 0.1,
-separating the two by an order of magnitude.
+> **Half speed can be held for exactly `2R` pixels of scrolling. Every pixel of
+> `--parallax-runway` buys two pixels of half-speed travel.**
 
-Because the effect eases, the *average* speed over a whole exit lands near −0.8 by construction.
-The number that means something is the **opening** speed, and that is what the tests measure.
+That is the whole trade, and it is why the answer to "keep −0.5 for longer" is more runway rather
+than a different curve.
+
+**The lag is linear up to a knee, then eases into the runway.** Up to `KNEE × R` (KNEE = 0.8) the
+block travels at exactly the target speed; beyond it the offset approaches `R` exponentially. The
+exponential's slope is 1 where it begins, so it takes over from the linear part with no change in
+speed — the transition is invisible.
+
+Two earlier versions were wrong in opposite directions and both were reported:
+
+- A **hard clamp** (`Math.min`) held half speed and then returned to 1× in a single frame. The
+  jolt is obvious: measured speed change between samples **0.280**.
+- **Easing from the very first pixel** never held the target speed at all; the speed drifted
+  continuously from −0.5 and the effect never felt constant.
+
+Measured now: exactly **−0.50 for 550px of scrolling**, then a smooth tail to −1.00, with a
+biggest step of **0.079**. Tests bound the step below 0.1 and require at least 300px held at the
+target speed, so neither failure mode can return.
+
+Because the effect eases at the end, the *average* speed over a whole exit is not a meaningful
+number. The tests measure the **opening** speed and the **distance held** at target.
 
 **The runway is measured, not assumed.** `measureRunway()` in `main.js` takes the distance from a
 block's deepest content to its own bottom edge, once at load and on resize — never per frame, and
